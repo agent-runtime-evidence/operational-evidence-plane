@@ -1,0 +1,48 @@
+{
+  "schema_version": "oep.operational_trace.v0",
+  "trace_id": "11111111111111111111111111111111",
+  "release_manifest_id": "rmf_code_review_agent_2026_05_04_v0",
+  "scenario": "code-review-agent",
+  "status": "replay_ready",
+  "started_at": "2026-05-04T00:00:01Z",
+  "ended_at": "2026-05-04T00:00:01Z",
+  "spans": [
+    {
+      "span_id": "2222222222222222",
+      "parent_span_id": null,
+      "name": "review.diff.inspect",
+      "status": "succeeded",
+      "event_ref": "events/examples/code_review_agent_step.v0.json",
+      "permission_packet_ref": "permissions/examples/code_review_tool_permission.v0.json",
+      "tool_call_id": "tool_read_diff_0001",
+      "checkpoint": {
+        "name": "review.diff.inspect",
+        "sequence": 1,
+        "state": "after"
+      }
+    }
+  ],
+  "joins": {
+    "release_manifest_ref": "manifest/examples/code_review_agent_release.v0.json",
+    "event_refs": [
+      "events/examples/code_review_agent_step.v0.json"
+    ],
+    "permission_packet_refs": [
+      "permissions/examples/code_review_tool_permission.v0.json"
+    ]
+  },
+  "replay": {
+    "handle": "replay_code_review_agent_0001",
+    "status": "ready",
+    "state_ref": "demo/state/code_review_agent.sqlite#events/evt_code_review_agent_step_0001",
+    "deterministic": true
+  },
+  "eval": {
+    "eval_id": "eval_code_review_agent_smoke_0001",
+    "eval_ref": "traces/examples/code_review_agent_eval.v0.json",
+    "status": "passed",
+    "summary": "Deterministic smoke eval passed for the synthetic code-review trace."
+  },
+  "evidence_loss": [],
+  "claim_boundary": "This trace bundle demonstrates one inspectable join across release manifest, event, permission packet, replay handle, and deterministic smoke eval. It is not a tracing backend, observability product, benchmark, or replay guarantee."
+}

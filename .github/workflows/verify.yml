@@ -1,0 +1,62 @@
+name: Verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv and locked dependencies
+        run: |
+          python -VV
+          python -m pip install --upgrade pip
+          python -m pip install uv==0.11.10
+          uv sync --extra dev --locked --python "$(command -v python)"
+
+      - name: Install OPA
+        run: |
+          OPA_VERSION=v1.7.1
+          OPA_SHA256=86cf5e8d189f5d56cc2b05a7920b557c61338aa088334ad2fb3f6de0ec931f04
+          curl -fsSL -o opa "https://github.com/open-policy-agent/opa/releases/download/${OPA_VERSION}/opa_linux_amd64_static"
+          echo "${OPA_SHA256}  opa" | sha256sum -c -
+          chmod +x opa
+          sudo mv opa /usr/local/bin/opa
+          opa version
+
+      - name: Run lint
+        run: make lint PYTHON=.venv/bin/python
+
+      - name: Run typecheck
+        run: make typecheck PYTHON=.venv/bin/python
+
+      - name: Check manifest digests
+        run: make check-digests PYTHON=.venv/bin/python
+
+      - name: Run public documentation checks
+        run: make check-docs PYTHON=.venv/bin/python
+
+      - name: Run verification
+        run: make verify PYTHON=.venv/bin/python
+
+      - name: Run smoke tests
+        run: make test PYTHON=.venv/bin/python
+
+      - name: Run coverage gate
+        run: make coverage PYTHON=.venv/bin/python

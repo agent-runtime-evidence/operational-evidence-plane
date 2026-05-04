@@ -1,0 +1,11 @@
+diff --git a/review_target.py b/review_target.py
+index 1111111..2222222 100644
+--- a/review_target.py
++++ b/review_target.py
+@@ -1,5 +1,7 @@
+ def build_response(user, permissions):
+-    return {"user": user.id, "allowed": bool(permissions)}
++    if not permissions:
++        return None
++    return {"user": user.id, "allowed": True}
+

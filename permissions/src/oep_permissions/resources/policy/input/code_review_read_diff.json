@@ -1,0 +1,29 @@
+{
+  "release_manifest_id": "rmf_code_review_agent_2026_05_04_v0",
+  "event_id": "evt_code_review_agent_step_0001",
+  "tool_call_id": "tool_read_diff_0001",
+  "trace_id": "11111111111111111111111111111111",
+  "span_id": "2222222222222222",
+  "actor": {
+    "type": "agent",
+    "id": "agent_code_review_reference_demo",
+    "display_name": "code-review-agent-reference-demo"
+  },
+  "action": {
+    "action_type": "inspect_diff",
+    "name": "inspect synthetic repository diff",
+    "input_ref": "demo/fixtures/diff_synthetic_001.patch"
+  },
+  "tool": {
+    "name": "read_diff",
+    "version": "0.1.0",
+    "operation": "read"
+  },
+  "resource": {
+    "type": "repository_diff",
+    "id": "diff_synthetic_001",
+    "uri": "demo/fixtures/diff_synthetic_001.patch",
+    "mutable": false
+  }
+}
+

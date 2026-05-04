@@ -1,0 +1,95 @@
+{
+  "schema_version": "oep.reconstruction_packet.v0",
+  "packet_id": "recon_code_review_agent_denied_0001",
+  "created_at": "2026-05-04T00:00:04Z",
+  "scenario": "code-review-agent-denied",
+  "release_manifest_id": "rmf_code_review_agent_2026_05_04_v0",
+  "trace_id": "33333333333333333333333333333333",
+  "event_id": "evt_code_review_agent_denied_0001",
+  "tool_call_id": "tool_write_diff_0001",
+  "permission_packet_id": "pder_code_review_write_diff_0001",
+  "eval_id": "eval_code_review_agent_denied_0001",
+  "replay_handle": null,
+  "reconstruction_status": "blocked",
+  "join_order": [
+    {
+      "step": 1,
+      "artifact": "release manifest",
+      "ref": "manifest/examples/code_review_agent_release.v0.json",
+      "status": "present"
+    },
+    {
+      "step": 2,
+      "artifact": "agent-step event",
+      "ref": "events/examples/code_review_agent_denied_step.v0.json",
+      "status": "present"
+    },
+    {
+      "step": 3,
+      "artifact": "OPA-backed permission packet",
+      "ref": "permissions/examples/code_review_tool_permission_denied.v0.json",
+      "status": "denied"
+    },
+    {
+      "step": 4,
+      "artifact": "operational trace bundle",
+      "ref": "traces/examples/code_review_agent_denied_trace.v0.json",
+      "status": "present"
+    },
+    {
+      "step": 5,
+      "artifact": "SQLite replay state",
+      "ref": "missing:denied-tool-call",
+      "status": "missing"
+    },
+    {
+      "step": 6,
+      "artifact": "deterministic eval result",
+      "ref": "traces/examples/code_review_agent_denied_eval.v0.json",
+      "status": "failed"
+    }
+  ],
+  "evidence_summary": {
+    "manifest": {
+      "status": "present",
+      "ref": "manifest/examples/code_review_agent_release.v0.json"
+    },
+    "event": {
+      "status": "present",
+      "ref": "events/examples/code_review_agent_denied_step.v0.json"
+    },
+    "permission": {
+      "status": "denied",
+      "ref": "permissions/examples/code_review_tool_permission_denied.v0.json"
+    },
+    "trace": {
+      "status": "present",
+      "ref": "traces/examples/code_review_agent_denied_trace.v0.json"
+    },
+    "replay_state": {
+      "status": "missing",
+      "ref": "missing:denied-tool-call"
+    },
+    "eval": {
+      "status": "failed",
+      "ref": "traces/examples/code_review_agent_denied_eval.v0.json"
+    }
+  },
+  "replay_summary": {
+    "state_ref": null,
+    "deterministic": true,
+    "finding_count": 0
+  },
+  "eval_summary": {
+    "status": "failed",
+    "expected_findings": 0,
+    "actual_findings": 0,
+    "blocking_evidence_loss_count": 1
+  },
+  "open_limitations": [
+    "Denied tool calls do not generate SQLite replay state in this reference demo.",
+    "The packet demonstrates blocked replay readiness, not production authorization coverage.",
+    "The eval is a deterministic replay-readiness check, not a benchmark or safety certification."
+  ],
+  "claim_boundary": "This packet is an inspectable blocked reconstruction view over a synthetic denied reference demo. It is not an incident standard, audit report, compliance proof, production postmortem, or guarantee that the same evidence is sufficient in another system."
+}

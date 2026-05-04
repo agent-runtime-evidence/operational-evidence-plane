@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://operational-evidence-plane.local/schema/agent_step_event.v0.schema.json",
+  "title": "Operational Evidence Plane Agent Step Event v0",
+  "description": "Scenario-agnostic runtime event profile for joining agent steps to release manifests, traces, permission packets, replay handles, and evidence-loss notes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "event_time",
+    "event_type",
+    "release_manifest_id",
+    "trace_id",
+    "span_id",
+    "checkpoint",
+    "actor",
+    "entity_ref",
+    "action",
+    "tool_call_id",
+    "permission_packet_ref",
+    "replay_handle",
+    "evidence_status",
+    "evidence_loss",
+    "outcome",
+    "links"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "oep.agent_step_event.v0"
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^evt_[a-z0-9][a-z0-9_-]*$"
+    },
+    "event_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "agent_step.started",
+        "agent_step.completed",
+        "agent_step.failed",
+        "tool_call.requested",
+        "tool_call.completed",
+        "tool_call.denied",
+        "finding.emitted"
+      ]
+    },
+    "release_manifest_id": {
+      "type": "string",
+      "pattern": "^rmf_[a-z0-9][a-z0-9_-]*$"
+    },
+    "trace_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "span_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{16}$"
+    },
+    "parent_span_id": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "string", "pattern": "^[a-f0-9]{16}$"}
+      ]
+    },
+    "checkpoint": {
+      "$ref": "#/$defs/checkpoint"
+    },
+    "actor": {
+      "$ref": "#/$defs/actor"
+    },
+    "entity_ref": {
+      "$ref": "#/$defs/entity_ref"
+    },
+    "action": {
+      "$ref": "#/$defs/action"
+    },
+    "tool_call_id": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "string", "pattern": "^tool_[a-z0-9][a-z0-9_-]*$"}
+      ]
+    },
+    "permission_packet_ref": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "string", "pattern": "^pder_[a-z0-9][a-z0-9_-]*$"}
+      ]
+    },
+    "replay_handle": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "#/$defs/replay_handle"}
+      ]
+    },
+    "evidence_status": {
+      "$ref": "#/$defs/evidence_status"
+    },
+    "evidence_loss": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/evidence_loss_item"}
+    },
+    "outcome": {
+      "$ref": "#/$defs/outcome"
+    },
+    "links": {
+      "$ref": "#/$defs/links"
+    }
+  },
+  "$defs": {
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "sequence", "state"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "sequence": {"type": "integer", "minimum": 0},
+        "state": {
+          "type": "string",
+          "enum": ["before", "after", "error"]
+        }
+      }
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "display_name"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["agent", "tool", "system", "human"]
+        },
+        "id": {"type": "string", "minLength": 1},
+        "display_name": {"type": "string", "minLength": 1}
+      }
+    },
+    "entity_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {"type": "string", "minLength": 1},
+        "id": {"type": "string", "minLength": 1},
+        "uri": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action_type", "name", "input_ref"],
+      "properties": {
+        "action_type": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "input_ref": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        },
+        "output_ref": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        }
+      }
+    },
+    "replay_handle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "state_ref"],
+      "properties": {
+        "type": {"type": "string", "minLength": 1},
+        "id": {"type": "string", "minLength": 1},
+        "state_ref": {"type": "string", "minLength": 1},
+        "deterministic": {"type": "boolean"}
+      }
+    },
+    "evidence_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_manifest",
+        "trace",
+        "permission",
+        "replay",
+        "eval"
+      ],
+      "properties": {
+        "release_manifest": {"$ref": "#/$defs/evidence_state"},
+        "trace": {"$ref": "#/$defs/evidence_state"},
+        "permission": {"$ref": "#/$defs/evidence_state"},
+        "replay": {"$ref": "#/$defs/evidence_state"},
+        "eval": {"$ref": "#/$defs/evidence_state"}
+      }
+    },
+    "evidence_state": {
+      "type": "string",
+      "enum": ["present", "declared", "external", "missing", "not_applicable"]
+    },
+    "evidence_loss_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "impact", "severity"],
+      "properties": {
+        "field": {"type": "string", "minLength": 1},
+        "impact": {"type": "string", "minLength": 1},
+        "severity": {
+          "type": "string",
+          "enum": ["info", "warning", "blocking"]
+        }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "summary"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["started", "succeeded", "failed", "denied", "skipped"]
+        },
+        "summary": {"type": "string", "minLength": 1},
+        "error_ref": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        }
+      }
+    },
+    "links": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_manifest_ref",
+        "trace_ref",
+        "permission_packet_ref",
+        "eval_ref"
+      ],
+      "properties": {
+        "release_manifest_ref": {"type": "string", "minLength": 1},
+        "trace_ref": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        },
+        "permission_packet_ref": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        },
+        "eval_ref": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        }
+      }
+    }
+  }
+}
+

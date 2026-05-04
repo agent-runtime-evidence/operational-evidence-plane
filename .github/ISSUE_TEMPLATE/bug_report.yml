@@ -1,0 +1,35 @@
+name: Bug report
+description: Report a reproducible issue in local verification or examples.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This repository is a research preview reference implementation, not a production support channel.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the observed behavior and expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Include exact commands and relevant output.
+      placeholder: |
+        1. Run `make clean-state`
+        2. Run `make verify`
+        3. Observe ...
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, OPA version.
+      placeholder: "macOS 15, Python 3.11, OPA 1.x"
+    validations:
+      required: true

@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://operational-evidence-plane.local/schema/operational_trace.v0.schema.json",
+  "title": "Operational Evidence Plane Trace Bundle v0",
+  "description": "Stitched trace bundle joining release manifest, runtime event, permission packet, replay handle, and deterministic eval evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trace_id",
+    "release_manifest_id",
+    "scenario",
+    "status",
+    "started_at",
+    "ended_at",
+    "spans",
+    "joins",
+    "replay",
+    "eval",
+    "evidence_loss",
+    "claim_boundary"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "oep.operational_trace.v0"
+    },
+    "trace_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "release_manifest_id": {
+      "type": "string",
+      "pattern": "^rmf_[a-z0-9][a-z0-9_-]*$"
+    },
+    "scenario": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": ["declared", "partial", "replay_ready", "failed"]
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "spans": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/span"}
+    },
+    "joins": {
+      "$ref": "#/$defs/joins"
+    },
+    "replay": {
+      "$ref": "#/$defs/replay"
+    },
+    "eval": {
+      "$ref": "#/$defs/eval"
+    },
+    "evidence_loss": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/evidence_loss_item"}
+    },
+    "claim_boundary": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "span": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "span_id",
+        "parent_span_id",
+        "name",
+        "status",
+        "event_ref",
+        "permission_packet_ref",
+        "tool_call_id",
+        "checkpoint"
+      ],
+      "properties": {
+        "span_id": {"type": "string", "pattern": "^[a-f0-9]{16}$"},
+        "parent_span_id": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "pattern": "^[a-f0-9]{16}$"}
+          ]
+        },
+        "name": {"type": "string", "minLength": 1},
+        "status": {"type": "string", "enum": ["succeeded", "failed", "denied", "declared"]},
+        "event_ref": {"type": "string", "minLength": 1},
+        "permission_packet_ref": {"type": "string", "minLength": 1},
+        "tool_call_id": {"type": "string", "pattern": "^tool_[a-z0-9][a-z0-9_-]*$"},
+        "checkpoint": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "sequence", "state"],
+          "properties": {
+            "name": {"type": "string", "minLength": 1},
+            "sequence": {"type": "integer", "minimum": 0},
+            "state": {"type": "string", "enum": ["before", "after", "error"]}
+          }
+        }
+      }
+    },
+    "joins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_manifest_ref",
+        "event_refs",
+        "permission_packet_refs"
+      ],
+      "properties": {
+        "release_manifest_ref": {"type": "string", "minLength": 1},
+        "event_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "permission_packet_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["handle", "status", "state_ref", "deterministic"],
+      "properties": {
+        "handle": {"type": "string", "minLength": 1},
+        "status": {"type": "string", "enum": ["declared", "ready", "missing"]},
+        "state_ref": {"type": "string", "minLength": 1},
+        "deterministic": {"type": "boolean"}
+      }
+    },
+    "eval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eval_id", "eval_ref", "status", "summary"],
+      "properties": {
+        "eval_id": {"type": "string", "pattern": "^eval_[a-z0-9][a-z0-9_-]*$"},
+        "eval_ref": {"type": "string", "minLength": 1},
+        "status": {"type": "string", "enum": ["declared", "passed", "failed", "missing"]},
+        "summary": {"type": "string", "minLength": 1}
+      }
+    },
+    "evidence_loss_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "impact", "severity"],
+      "properties": {
+        "field": {"type": "string", "minLength": 1},
+        "impact": {"type": "string", "minLength": 1},
+        "severity": {"type": "string", "enum": ["info", "warning", "blocking"]}
+      }
+    }
+  }
+}

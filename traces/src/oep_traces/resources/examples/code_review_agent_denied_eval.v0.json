@@ -1,0 +1,41 @@
+{
+  "schema_version": "oep.eval_result.v0",
+  "eval_id": "eval_code_review_agent_denied_0001",
+  "release_manifest_id": "rmf_code_review_agent_2026_05_04_v0",
+  "trace_id": "33333333333333333333333333333333",
+  "scenario": "code-review-agent-denied",
+  "status": "failed",
+  "name": "code-review-agent-denied-replay-eval",
+  "summary": "Deterministic replay-readiness eval failed for the denied tool-call path: the permission packet denied the write attempt and no replay state exists for deterministic reconstruction.",
+  "checks": [
+    {
+      "check_id": "permission_packet_denied",
+      "status": "passed",
+      "summary": "The OPA-backed permission packet denied the attempted diff write."
+    },
+    {
+      "check_id": "no_replay_state",
+      "status": "failed",
+      "summary": "The denied tool call has no generated SQLite replay state."
+    },
+    {
+      "check_id": "blocking_evidence_loss_recorded",
+      "status": "passed",
+      "summary": "The trace records replay state as blocking evidence loss."
+    }
+  ],
+  "metrics": {
+    "expected_findings": 0,
+    "actual_findings": 0,
+    "allowed_permission_packets": 0,
+    "blocking_evidence_loss_count": 1
+  },
+  "input_refs": {
+    "trace_ref": "traces/examples/code_review_agent_denied_trace.v0.json",
+    "event_ref": "events/examples/code_review_agent_denied_step.v0.json",
+    "permission_packet_ref": "permissions/examples/code_review_tool_permission_denied.v0.json",
+    "fixture_ref": "demo/fixtures/diff_synthetic_001.patch",
+    "state_ref": "missing:denied-tool-call"
+  },
+  "claim_boundary": "This eval is a deterministic local replay-readiness check over a synthetic denied path. It is not a benchmark, model-quality claim, safety certification, or production monitoring result."
+}

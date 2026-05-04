@@ -1,0 +1,54 @@
+{
+  "schema_version": "oep.operational_trace.v0",
+  "trace_id": "33333333333333333333333333333333",
+  "release_manifest_id": "rmf_code_review_agent_2026_05_04_v0",
+  "scenario": "code-review-agent-denied",
+  "status": "partial",
+  "started_at": "2026-05-04T00:00:03Z",
+  "ended_at": "2026-05-04T00:00:03Z",
+  "spans": [
+    {
+      "span_id": "4444444444444444",
+      "parent_span_id": null,
+      "name": "review.diff.write",
+      "status": "denied",
+      "event_ref": "events/examples/code_review_agent_denied_step.v0.json",
+      "permission_packet_ref": "permissions/examples/code_review_tool_permission_denied.v0.json",
+      "tool_call_id": "tool_write_diff_0001",
+      "checkpoint": {
+        "name": "review.diff.write",
+        "sequence": 2,
+        "state": "error"
+      }
+    }
+  ],
+  "joins": {
+    "release_manifest_ref": "manifest/examples/code_review_agent_release.v0.json",
+    "event_refs": [
+      "events/examples/code_review_agent_denied_step.v0.json"
+    ],
+    "permission_packet_refs": [
+      "permissions/examples/code_review_tool_permission_denied.v0.json"
+    ]
+  },
+  "replay": {
+    "handle": "replay_code_review_agent_denied_missing",
+    "status": "missing",
+    "state_ref": "missing:denied-tool-call",
+    "deterministic": true
+  },
+  "eval": {
+    "eval_id": "eval_code_review_agent_denied_0001",
+    "eval_ref": "traces/examples/code_review_agent_denied_eval.v0.json",
+    "status": "failed",
+    "summary": "Deterministic replay-readiness eval failed because the denied tool call has no replay state."
+  },
+  "evidence_loss": [
+    {
+      "field": "replay.state_ref",
+      "impact": "Denied tool call has no generated SQLite replay state, so deterministic replay is blocked.",
+      "severity": "blocking"
+    }
+  ],
+  "claim_boundary": "This trace bundle demonstrates a denied tool-call path with explicit replay evidence loss. It is not a tracing backend, observability product, benchmark, or replay guarantee."
+}

@@ -1,0 +1,103 @@
+{
+  "schema_version": "oep.bedrock_translation.v0",
+  "translation_id": "bedrock_code_review_agent_0001",
+  "source_checked_at": "2026-05-04",
+  "core_refs": {
+    "release_manifest_id": "rmf_code_review_agent_2026_05_04_v0",
+    "event_id": "evt_code_review_agent_step_0001",
+    "permission_packet_id": "pder_code_review_read_diff_0001",
+    "trace_id": "11111111111111111111111111111111",
+    "eval_id": "eval_code_review_agent_smoke_0001",
+    "reconstruction_packet_id": "recon_code_review_agent_0001"
+  },
+  "bedrock_runtime_refs": {
+    "agent_id": "BEDROCK_AGENT_ID_PLACEHOLDER",
+    "agent_alias_id": "BEDROCK_AGENT_ALIAS_ID_PLACEHOLDER",
+    "agent_version": "BEDROCK_AGENT_VERSION_PLACEHOLDER",
+    "session_id": "oep-code-review-session-0001",
+    "invoke_agent_trace": "enableTrace=true",
+    "note": "Placeholders only. This repository does not call AWS or create Bedrock resources."
+  },
+  "layer_mapping": [
+    {
+      "oep_layer": "model",
+      "bedrock_surface": "Agent foundation model configuration",
+      "translation_status": "native",
+      "boundary": "OEP records intended model identity; Bedrock owns model invocation."
+    },
+    {
+      "oep_layer": "prompt",
+      "bedrock_surface": "Agent instructions and advanced prompt templates",
+      "translation_status": "native",
+      "boundary": "OEP records prompt-template references for reconstruction, not prompt construction."
+    },
+    {
+      "oep_layer": "tool_schema",
+      "bedrock_surface": "Action groups and action API/function definitions",
+      "translation_status": "native",
+      "boundary": "OEP tool schema maps to Bedrock action groups but keeps application-side evidence IDs."
+    },
+    {
+      "oep_layer": "policy",
+      "bedrock_surface": "IAM, guardrails, and application-side OPA policy",
+      "translation_status": "split",
+      "boundary": "The OEP permission packet is external application-side tool authorization evidence."
+    },
+    {
+      "oep_layer": "workflow",
+      "bedrock_surface": "Agent orchestration turns and iterations",
+      "translation_status": "native",
+      "boundary": "OEP records workflow identity and trace joins, not Bedrock orchestration logic."
+    },
+    {
+      "oep_layer": "rollout",
+      "bedrock_surface": "Agent versions and aliases",
+      "translation_status": "native",
+      "boundary": "Bedrock aliases/versions are the vendor-native rollout precedent; OEP adds cross-stack reconstruction joins."
+    },
+    {
+      "oep_layer": "eval",
+      "bedrock_surface": "Application-side eval over Bedrock runtime output and traces",
+      "translation_status": "external",
+      "boundary": "The local eval is not a Bedrock benchmark or monitoring claim."
+    },
+    {
+      "oep_layer": "data_state",
+      "bedrock_surface": "Knowledge bases, session state, prompt session attributes, memory, and application state",
+      "translation_status": "split",
+      "boundary": "OEP replay state is application-side; Bedrock managed memory/session surfaces are inputs to reconstruction."
+    }
+  ],
+  "runtime_mapping": {
+    "invoke_agent": {
+      "agentId": "bedrock_runtime_refs.agent_id",
+      "agentAliasId": "bedrock_runtime_refs.agent_alias_id",
+      "sessionId": "bedrock_runtime_refs.session_id",
+      "enableTrace": true
+    },
+    "application_side_oep_fields": {
+      "release_manifest_id": "core_refs.release_manifest_id",
+      "trace_id": "core_refs.trace_id",
+      "permission_packet_id": "core_refs.permission_packet_id",
+      "reconstruction_packet_id": "core_refs.reconstruction_packet_id"
+    },
+    "session_state_note": "SessionState may carry runtime context, action results, prompt session attributes, or memory-related context, but OEP still records explicit replay and reconstruction evidence outside Bedrock."
+  },
+  "non_goals": [
+    "No AWS calls.",
+    "No CloudFormation, CDK, Terraform, or Bedrock deployment.",
+    "No claim that Bedrock aliases or versions are insufficient.",
+    "No claim that Bedrock traces are deterministic replay.",
+    "No replacement for IAM, guardrails, action groups, knowledge bases, or Bedrock memory."
+  ],
+  "source_urls": [
+    "https://docs.aws.amazon.com/bedrock/latest/userguide/agents.html",
+    "https://docs.aws.amazon.com/bedrock/latest/userguide/deploy-agent.html",
+    "https://docs.aws.amazon.com/bedrock/latest/userguide/advanced-prompts.html",
+    "https://docs.aws.amazon.com/bedrock/latest/userguide/agents-invoke-agent.html",
+    "https://docs.aws.amazon.com/bedrock/latest/userguide/agents-session-state.html",
+    "https://docs.aws.amazon.com/bedrock/latest/userguide/agents-configure-memory.html"
+  ],
+  "claim_boundary": "This file is a source-informed translation from OEP artifacts to Bedrock agent surfaces. It is not executable AWS configuration, not a Bedrock replacement, and not a claim that Bedrock lacks native release or runtime evidence surfaces."
+}
+

@@ -1,0 +1,58 @@
+{
+  "schema_version": "oep.agent_step_event.v0",
+  "event_id": "evt_code_review_agent_step_0001",
+  "event_time": "2026-05-04T00:00:01Z",
+  "event_type": "agent_step.completed",
+  "release_manifest_id": "rmf_code_review_agent_2026_05_04_v0",
+  "trace_id": "11111111111111111111111111111111",
+  "span_id": "2222222222222222",
+  "parent_span_id": null,
+  "checkpoint": {
+    "name": "review.diff.inspect",
+    "sequence": 1,
+    "state": "after"
+  },
+  "actor": {
+    "type": "agent",
+    "id": "agent_code_review_reference_demo",
+    "display_name": "code-review-agent-reference-demo"
+  },
+  "entity_ref": {
+    "type": "repository_diff",
+    "id": "diff_synthetic_001",
+    "uri": "demo/fixtures/diff_synthetic_001.patch"
+  },
+  "action": {
+    "action_type": "inspect_diff",
+    "name": "inspect synthetic repository diff",
+    "input_ref": "demo/fixtures/diff_synthetic_001.patch",
+    "output_ref": "traces/examples/code_review_agent_trace.v0.json"
+  },
+  "tool_call_id": "tool_read_diff_0001",
+  "permission_packet_ref": "pder_code_review_read_diff_0001",
+  "replay_handle": {
+    "type": "sqlite",
+    "id": "replay_code_review_agent_0001",
+    "state_ref": "demo/state/code_review_agent.sqlite#events/evt_code_review_agent_step_0001",
+    "deterministic": true
+  },
+  "evidence_status": {
+    "release_manifest": "present",
+    "trace": "declared",
+    "permission": "present",
+    "replay": "present",
+    "eval": "declared"
+  },
+  "evidence_loss": [],
+  "outcome": {
+    "status": "succeeded",
+    "summary": "Synthetic diff inspection completed and emitted a trace join point.",
+    "error_ref": null
+  },
+  "links": {
+    "release_manifest_ref": "manifest/examples/code_review_agent_release.v0.json",
+    "trace_ref": "traces/examples/code_review_agent_trace.v0.json",
+    "permission_packet_ref": "permissions/examples/code_review_tool_permission.v0.json",
+    "eval_ref": "traces/examples/code_review_agent_eval.v0.json"
+  }
+}

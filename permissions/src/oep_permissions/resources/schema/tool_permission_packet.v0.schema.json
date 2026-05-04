@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://operational-evidence-plane.local/schema/tool_permission_packet.v0.schema.json",
+  "title": "Operational Evidence Plane Tool Permission Packet v0",
+  "description": "Permission decision evidence packet for joining an agent tool call to release manifest, runtime event, trace, and OPA policy decision evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "packet_id",
+    "decision_time",
+    "release_manifest_id",
+    "event_id",
+    "tool_call_id",
+    "trace_id",
+    "span_id",
+    "actor",
+    "requested_action",
+    "tool",
+    "resource",
+    "policy",
+    "decision",
+    "links",
+    "claim_boundary"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "oep.tool_permission_packet.v0"
+    },
+    "packet_id": {
+      "type": "string",
+      "pattern": "^pder_[a-z0-9][a-z0-9_-]*$"
+    },
+    "decision_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "release_manifest_id": {
+      "type": "string",
+      "pattern": "^rmf_[a-z0-9][a-z0-9_-]*$"
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^evt_[a-z0-9][a-z0-9_-]*$"
+    },
+    "tool_call_id": {
+      "type": "string",
+      "pattern": "^tool_[a-z0-9][a-z0-9_-]*$"
+    },
+    "trace_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "span_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{16}$"
+    },
+    "actor": {
+      "$ref": "#/$defs/actor"
+    },
+    "requested_action": {
+      "$ref": "#/$defs/requested_action"
+    },
+    "tool": {
+      "$ref": "#/$defs/tool"
+    },
+    "resource": {
+      "$ref": "#/$defs/resource"
+    },
+    "policy": {
+      "$ref": "#/$defs/policy_ref"
+    },
+    "decision": {
+      "$ref": "#/$defs/decision"
+    },
+    "links": {
+      "$ref": "#/$defs/links"
+    },
+    "claim_boundary": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "display_name"],
+      "properties": {
+        "type": {"type": "string", "enum": ["agent", "tool", "system", "human"]},
+        "id": {"type": "string", "minLength": 1},
+        "display_name": {"type": "string", "minLength": 1}
+      }
+    },
+    "requested_action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action_type", "name", "input_ref"],
+      "properties": {
+        "action_type": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "input_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "operation"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "minLength": 1},
+        "operation": {"type": "string", "minLength": 1}
+      }
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "uri", "mutable"],
+      "properties": {
+        "type": {"type": "string", "minLength": 1},
+        "id": {"type": "string", "minLength": 1},
+        "uri": {"type": "string", "minLength": 1},
+        "mutable": {"type": "boolean"}
+      }
+    },
+    "policy_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engine", "package", "policy_id", "policy_version", "policy_uri"],
+      "properties": {
+        "engine": {"type": "string", "const": "opa"},
+        "package": {"type": "string", "minLength": 1},
+        "policy_id": {"type": "string", "minLength": 1},
+        "policy_version": {"type": "string", "minLength": 1},
+        "policy_uri": {"type": "string", "minLength": 1}
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allow", "reason", "matched_rule", "opa_result_ref"],
+      "properties": {
+        "allow": {"type": "boolean"},
+        "reason": {"type": "string", "minLength": 1},
+        "matched_rule": {"type": "string", "minLength": 1},
+        "opa_result_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "links": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_ref", "release_manifest_ref", "trace_ref"],
+      "properties": {
+        "event_ref": {"type": "string", "minLength": 1},
+        "release_manifest_ref": {"type": "string", "minLength": 1},
+        "trace_ref": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        }
+      }
+    }
+  }
+}
+

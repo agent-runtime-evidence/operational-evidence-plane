@@ -1,0 +1,41 @@
+{
+  "schema_version": "oep.eval_result.v0",
+  "eval_id": "eval_code_review_agent_smoke_0001",
+  "release_manifest_id": "rmf_code_review_agent_2026_05_04_v0",
+  "trace_id": "11111111111111111111111111111111",
+  "scenario": "code-review-agent",
+  "status": "passed",
+  "name": "code-review-agent-smoke-eval",
+  "summary": "Deterministic smoke eval passed for the synthetic code-review trace: one expected finding was generated, the tool permission packet allowed the read-only diff inspection, and no blocking evidence-loss item remains.",
+  "checks": [
+    {
+      "check_id": "expected_finding_count",
+      "status": "passed",
+      "summary": "The deterministic review produced exactly one finding for the synthetic diff."
+    },
+    {
+      "check_id": "permission_packet_allowed",
+      "status": "passed",
+      "summary": "The OPA-backed permission packet allowed the read-only diff inspection."
+    },
+    {
+      "check_id": "no_blocking_evidence_loss",
+      "status": "passed",
+      "summary": "The current chain has no blocking evidence-loss notes."
+    }
+  ],
+  "metrics": {
+    "expected_findings": 1,
+    "actual_findings": 1,
+    "allowed_permission_packets": 1,
+    "blocking_evidence_loss_count": 0
+  },
+  "input_refs": {
+    "trace_ref": "traces/examples/code_review_agent_trace.v0.json",
+    "event_ref": "events/examples/code_review_agent_step.v0.json",
+    "permission_packet_ref": "permissions/examples/code_review_tool_permission.v0.json",
+    "fixture_ref": "demo/fixtures/diff_synthetic_001.patch",
+    "state_ref": "demo/state/code_review_agent.sqlite#evals/eval_code_review_agent_smoke_0001"
+  },
+  "claim_boundary": "This eval is a deterministic local smoke check over a synthetic fixture. It is not a benchmark, model-quality claim, safety certification, or production monitoring result."
+}

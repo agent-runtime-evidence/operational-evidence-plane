@@ -1,0 +1,59 @@
+{
+  "schema_version": "oep.agent_step_event.v0",
+  "event_id": "evt_code_review_agent_denied_0001",
+  "event_time": "2026-05-04T00:00:03Z",
+  "event_type": "tool_call.denied",
+  "release_manifest_id": "rmf_code_review_agent_2026_05_04_v0",
+  "trace_id": "33333333333333333333333333333333",
+  "span_id": "4444444444444444",
+  "parent_span_id": null,
+  "checkpoint": {
+    "name": "review.diff.write",
+    "sequence": 2,
+    "state": "error"
+  },
+  "actor": {
+    "type": "agent",
+    "id": "agent_code_review_reference_demo",
+    "display_name": "code-review-agent-reference-demo"
+  },
+  "entity_ref": {
+    "type": "repository_diff",
+    "id": "diff_synthetic_001",
+    "uri": "demo/fixtures/diff_synthetic_001.patch"
+  },
+  "action": {
+    "action_type": "write_diff",
+    "name": "attempt synthetic repository diff write",
+    "input_ref": "demo/fixtures/diff_synthetic_001.patch",
+    "output_ref": null
+  },
+  "tool_call_id": "tool_write_diff_0001",
+  "permission_packet_ref": "pder_code_review_write_diff_0001",
+  "replay_handle": null,
+  "evidence_status": {
+    "release_manifest": "present",
+    "trace": "declared",
+    "permission": "present",
+    "replay": "missing",
+    "eval": "declared"
+  },
+  "evidence_loss": [
+    {
+      "field": "replay_handle",
+      "impact": "Denied tool call produced no replayable SQLite state, so reconstruction cannot claim replay readiness.",
+      "severity": "blocking"
+    }
+  ],
+  "outcome": {
+    "status": "denied",
+    "summary": "Synthetic diff write attempt was denied by the reference OPA policy.",
+    "error_ref": "permissions/examples/code_review_tool_permission_denied.v0.json#decision"
+  },
+  "links": {
+    "release_manifest_ref": "manifest/examples/code_review_agent_release.v0.json",
+    "trace_ref": "traces/examples/code_review_agent_denied_trace.v0.json",
+    "permission_packet_ref": "permissions/examples/code_review_tool_permission_denied.v0.json",
+    "eval_ref": "traces/examples/code_review_agent_denied_eval.v0.json"
+  }
+}

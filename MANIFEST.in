@@ -1,0 +1,37 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+include CONTRIBUTING.md
+include CITATION.cff
+include SECURITY.md
+include Makefile
+include MANIFEST.in
+include pyproject.toml
+include uv.lock
+
+recursive-include .github *.yml *.yaml
+recursive-include docs *.md
+recursive-include oep_verify *.py py.typed
+recursive-include manifest *.py *.json *.toml py.typed
+recursive-include events *.py *.json *.toml py.typed
+recursive-include permissions *.py *.json *.rego *.toml py.typed
+recursive-include traces *.py *.json *.toml py.typed
+recursive-include playbooks *.py *.json *.md *.toml py.typed
+recursive-include demo *.py *.patch *.md *.toml py.typed .gitkeep
+recursive-include translations *.md *.json *.py
+recursive-include integrations/decision-trace-reconstructor *.md *.yaml *.json *.jsonl *.py
+recursive-include scripts *.py
+recursive-include tests *.py
+
+global-exclude *.py[cod]
+global-exclude *.sqlite *.sqlite3 *.db
+global-exclude *.fragments.json
+global-exclude .coverage
+prune .venv
+prune build
+prune dist
+prune htmlcov
+prune .mypy_cache
+prune .pytest_cache
+prune .ruff_cache
+prune integrations/decision-trace-reconstructor/*.report

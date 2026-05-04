@@ -1,0 +1,197 @@
+{
+  "schema_version": "oep.release_manifest.v0",
+  "manifest_id": "rmf_code_review_agent_2026_05_04_v0",
+  "created_at": "2026-05-04T00:00:00Z",
+  "release": {
+    "name": "code-review-agent-reference-demo",
+    "version": "0.1.0",
+    "status": "candidate",
+    "environment": "reference-demo",
+    "scenario": "code-review-agent",
+    "owner": "artifact-pipeline",
+    "description": "Synthetic reference release record for the deterministic code-review-agent demo. This record binds the release-time layers used by runtime events, permission packets, traces, evals, and reconstruction packets."
+  },
+  "layer_bindings": {
+    "model": {
+      "layer_type": "model",
+      "name": "deterministic-mock-reviewer",
+      "version": "0.1.0",
+      "binding_status": "resolved",
+      "uri": "demo/model/deterministic_mock_reviewer.md",
+      "digest": "sha256:3a7b26655e6271396aa83834cbd51ef12b10aee228e8d38112a24976d5281419",
+      "evidence_role": "Records that the reference demo uses deterministic mocked LLM behavior rather than live model calls.",
+      "notes": "The model-behavior substitute is bound as a source artifact; no live LLM endpoint or vendor model is part of this reference release."
+    },
+    "prompt": {
+      "layer_type": "prompt",
+      "name": "code-review-agent-prompt-set",
+      "version": "0.1.0",
+      "binding_status": "resolved",
+      "uri": "demo/prompts/code_review_agent.md",
+      "digest": "sha256:40bc0eb9a6002e8eb0ea37d9823a715edee69b5f6301bf5af711f335f46b9138",
+      "evidence_role": "Binds the review instruction set that runtime events and deterministic evals reference.",
+      "notes": "The prompt contract is narrow so the reference scenario remains deterministic and source-inspectable."
+    },
+    "tool_schema": {
+      "layer_type": "tool_schema",
+      "name": "code-review-agent-tool-registry",
+      "version": "0.1.0",
+      "binding_status": "resolved",
+      "uri": "permissions/schema/tool_permission_packet.v0.schema.json",
+      "digest": "sha256:ed01c86854ec751a948089073d8ff6278215fca75638bf4ddbe3769a990e679d",
+      "evidence_role": "Binds the allowed tool/action schema for runtime permission packets.",
+      "notes": "The first tool surface is represented by the permission packet schema for repository diff inspection."
+    },
+    "policy": {
+      "layer_type": "policy",
+      "name": "opa-tool-permission-policy",
+      "version": "0.1.0",
+      "binding_status": "resolved",
+      "uri": "permissions/policy/tool_permissions.rego",
+      "digest": "sha256:e0d5563e9e046960f5435ab1e00f26df8925e16ca7a207ee37df65b7151bcb27",
+      "evidence_role": "Binds the OPA policy bundle version used to permit or deny tool calls.",
+      "notes": "The reference implementation uses real OPA decisions from this content-addressed policy."
+    },
+    "workflow": {
+      "layer_type": "workflow",
+      "name": "code-review-agent-workflow",
+      "version": "0.1.0",
+      "binding_status": "resolved",
+      "uri": "demo/src/oep_demo",
+      "digest": "sha256:d81b81c6a3601cb20d01baced0001e4b0d61cbdfe9e91e1cc047831595ac6081",
+      "evidence_role": "Binds the workflow package for deterministic review, permission check, trace emit, resource loading, and finding output.",
+      "notes": "The deterministic demo workflow package is content-addressed as a tree for this release manifest."
+    },
+    "rollout": {
+      "layer_type": "rollout",
+      "name": "reference-demo-rollout",
+      "version": "0.1.0",
+      "binding_status": "resolved",
+      "uri": "playbooks/rollback_reconstruction.md",
+      "digest": "sha256:1c93eb18939c2fba97ba136b9c93f0300686d0419853759c3388008fd9394a72",
+      "evidence_role": "Binds reference activation state and rollback expectations for this demo release.",
+      "notes": "No production rollout, traffic shifting, or external deployment is implied."
+    },
+    "eval": {
+      "layer_type": "eval",
+      "name": "code-review-agent-smoke-eval",
+      "version": "0.1.0",
+      "binding_status": "resolved",
+      "uri": "traces/examples/",
+      "digest": "sha256:520292c4474aa9702f572c0894c49e24f5f0836b01677faede703008bc870d82",
+      "evidence_role": "Binds the committed deterministic eval and trace examples referenced by reconstruction packets.",
+      "notes": "Eval examples are content-addressed as a tree for this release manifest."
+    },
+    "data_state": {
+      "layer_type": "data_state",
+      "name": "sqlite-replay-state-recipe",
+      "version": "0.1.0",
+      "binding_status": "resolved",
+      "uri": "demo/state/replay_state_recipe.md",
+      "digest": "sha256:6586bb8d576343ef5c235e861e3729ed29b237e7d3a65cbe0d58f0ab6fb86e2a",
+      "evidence_role": "Binds the reproducible replay-state recipe used for reconstruction handles.",
+      "notes": "The generated SQLite file remains ignored by git; this source artifact records how replay state is generated and checked."
+    }
+  },
+  "runtime_join_rules": {
+    "release_manifest_id_field": "release_manifest_id",
+    "event_profile_ref": "events/schema/agent_step_event.v0.schema.json",
+    "trace_id_field": "trace_id",
+    "span_id_field": "span_id",
+    "tool_call_id_field": "tool_call_id",
+    "permission_packet_ref": "permissions/schema/tool_permission_packet.v0.schema.json",
+    "replay_handle_field": "replay_handle",
+    "notes": "Runtime schemas are separate from the release manifest. This manifest reserves the field names that later events, permission packets, traces, and playbooks must join on."
+  },
+  "rollback": {
+    "previous_manifest_id": null,
+    "rollback_candidate_manifest_id_field": "rollback.previous_manifest_id",
+    "required_checks": [
+      "current manifest can be identified from runtime event release_manifest_id",
+      "candidate rollback manifest is available and not marked missing",
+      "policy binding and workflow binding are compatible with the target runtime event profile",
+      "data_state binding has a reconstruction handle or an explicit evidence-loss note"
+    ],
+    "fail_closed_on_missing": [
+      "policy",
+      "tool_schema",
+      "workflow",
+      "release_manifest_id"
+    ]
+  },
+  "reconstruction": {
+    "ordered_join_steps": [
+      {
+        "step": 1,
+        "evidence_ref": "runtime_event.release_manifest_id",
+        "missing_evidence_result": "cannot establish which release record governed the action"
+      },
+      {
+        "step": 2,
+        "evidence_ref": "manifest.layer_bindings",
+        "missing_evidence_result": "cannot reconstruct intended model, prompt, tool, policy, workflow, rollout, eval, or data-state references"
+      },
+      {
+        "step": 3,
+        "evidence_ref": "runtime_event.trace_id and runtime_event.span_id",
+        "missing_evidence_result": "cannot place the action in an execution trace"
+      },
+      {
+        "step": 4,
+        "evidence_ref": "runtime_event.tool_call_id and permission_packet_ref",
+        "missing_evidence_result": "cannot explain why a tool action was allowed or denied"
+      },
+      {
+        "step": 5,
+        "evidence_ref": "replay_handle",
+        "missing_evidence_result": "can inspect logs but cannot replay or deterministically reconstruct the step"
+      }
+    ],
+    "minimum_replay_ready_status": "Replay-ready means all eight layer bindings are resolved, runtime events carry the manifest and trace join keys, tool actions have permission packets, and the replay handle points to enough local state to reproduce the deterministic demo step."
+  },
+  "substitute_context": [
+    {
+      "surface": "Bedrock 5+ layers",
+      "useful_precedent": "Agent aliases and versions bind multiple vendor-native agent components.",
+      "boundary": "This manifest treats Bedrock as a strong precedent and avoids claims that vendors only bind four layers or fewer."
+    },
+    {
+      "surface": "Azure azure-ai-projects 2.1.0",
+      "useful_precedent": "SDK and project consolidation provide a current vendor surface for AI project work.",
+      "boundary": "This manifest does not claim Azure lacks useful project/version primitives."
+    },
+    {
+      "surface": "Vertex",
+      "useful_precedent": "ReasoningEngine and adjacent Google Cloud resources expose separate deployment, model, memory, eval, RAG/search, and IAM surfaces.",
+      "boundary": "This manifest demonstrates one vendor-neutral stitching pattern across such slices."
+    },
+    {
+      "surface": "LangSmith",
+      "useful_precedent": "Deployment and rollback primitives exist alongside prompt registry surfaces.",
+      "boundary": "This manifest focuses on cross-stack release/runtime evidence joins, not replacement."
+    },
+    {
+      "surface": "OTel GenAI, MCP, A2A",
+      "useful_precedent": "Runtime telemetry and communication protocols provide adjacent standards and protocol surfaces.",
+      "boundary": "They are treated as complementary runtime references, not release manifest substitutes."
+    }
+  ],
+  "claim_boundaries": [
+    "reference implementation, not framework",
+    "not a vendor replacement",
+    "not production-ready",
+    "not a standardization proposal",
+    "does not create compliance, audit readiness, or legal sufficiency by itself",
+    "demonstrates one wiring pattern among several plausible ones",
+    "designed for inspectability and education first"
+  ],
+  "provenance": {
+    "source_scope": "Vendor-neutral release manifest scaffold for the deterministic code-review demo.",
+    "source_artifacts": [
+      "README.md",
+      "docs/architecture.md"
+    ],
+    "generated_by": "manual local scaffold",
+    "created_from": "Operational Evidence Plane v0 release manifest scaffold"
+  }
+}

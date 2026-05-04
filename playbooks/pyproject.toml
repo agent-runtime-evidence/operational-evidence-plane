@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=77,<80", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oep-playbooks"
+version = "0.1.0"
+requires-python = ">=3.11,<4"
+description = "Operational playbook package for the Operational Evidence Plane"
+readme = "../README.md"
+license = "Apache-2.0"
+authors = [{name = "Oleg Solozobov"}]
+dependencies = []
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["oep_playbooks"]
+
+[tool.setuptools.package-data]
+oep_playbooks = ["py.typed", "resources/*.md", "resources/schema/*.json", "resources/examples/*.json"]

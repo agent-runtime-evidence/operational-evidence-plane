@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "Operational Evidence Plane"
+authors:
+  - family-names: "Solozobov"
+    given-names: "Oleg"
+version: "0.1.0"
+date-released: "2026-05-06"
+license: "Apache-2.0"
+url: "https://github.com/agent-runtime-evidence/operational-evidence-plane"
+repository-code: "https://github.com/agent-runtime-evidence/operational-evidence-plane"
+abstract: "Vendor-neutral reference implementation for reconstructable agent runtime evidence across release manifests, runtime events, permissioned tool calls, traces, replay state, eval results, and reconstruction packets."
+keywords:
+  - agent runtime
+  - operational evidence
+  - release manifest
+  - replay
+  - OPA
+  - SQLite

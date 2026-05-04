@@ -1,0 +1,21 @@
+name: Documentation question
+description: Ask for clarification about the reference implementation or docs.
+title: "[Docs]: "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for documentation gaps, unclear examples, or claim-boundary questions.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What part of the repository needs clarification?
+    validations:
+      required: true
+  - type: input
+    id: page
+    attributes:
+      label: Related file or page
+      placeholder: "README.md, docs/architecture.md, manifest/examples/..."

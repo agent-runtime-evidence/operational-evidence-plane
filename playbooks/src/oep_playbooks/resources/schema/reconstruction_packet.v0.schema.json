@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://operational-evidence-plane.local/schema/reconstruction_packet.v0.schema.json",
+  "title": "Operational Evidence Plane Reconstruction Packet v0",
+  "description": "Operational reconstruction packet summarizing whether a runtime agent action can be reconstructed from manifest, event, permission, trace, replay state, and eval evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "packet_id",
+    "created_at",
+    "scenario",
+    "release_manifest_id",
+    "trace_id",
+    "event_id",
+    "tool_call_id",
+    "permission_packet_id",
+    "eval_id",
+    "replay_handle",
+    "reconstruction_status",
+    "join_order",
+    "evidence_summary",
+    "replay_summary",
+    "eval_summary",
+    "open_limitations",
+    "claim_boundary"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "const": "oep.reconstruction_packet.v0"},
+    "packet_id": {"type": "string", "pattern": "^recon_[a-z0-9][a-z0-9_-]*$"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "scenario": {"type": "string", "minLength": 1},
+    "release_manifest_id": {"type": "string", "pattern": "^rmf_[a-z0-9][a-z0-9_-]*$"},
+    "trace_id": {"type": "string", "pattern": "^[a-f0-9]{32}$"},
+    "event_id": {"type": "string", "pattern": "^evt_[a-z0-9][a-z0-9_-]*$"},
+    "tool_call_id": {"type": "string", "pattern": "^tool_[a-z0-9][a-z0-9_-]*$"},
+    "permission_packet_id": {"type": "string", "pattern": "^pder_[a-z0-9][a-z0-9_-]*$"},
+    "eval_id": {"type": "string", "pattern": "^eval_[a-z0-9][a-z0-9_-]*$"},
+    "replay_handle": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "string", "minLength": 1}
+      ]
+    },
+    "reconstruction_status": {
+      "type": "string",
+      "enum": ["ready", "partial", "blocked"]
+    },
+    "join_order": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/join_step"}
+    },
+    "evidence_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest",
+        "event",
+        "permission",
+        "trace",
+        "replay_state",
+        "eval"
+      ],
+      "properties": {
+        "manifest": {"$ref": "#/$defs/evidence_item"},
+        "event": {"$ref": "#/$defs/evidence_item"},
+        "permission": {"$ref": "#/$defs/evidence_item"},
+        "trace": {"$ref": "#/$defs/evidence_item"},
+        "replay_state": {"$ref": "#/$defs/evidence_item"},
+        "eval": {"$ref": "#/$defs/evidence_item"}
+      }
+    },
+    "replay_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state_ref", "deterministic", "finding_count"],
+      "properties": {
+        "state_ref": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        },
+        "deterministic": {"type": "boolean"},
+        "finding_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "eval_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "expected_findings", "actual_findings", "blocking_evidence_loss_count"],
+      "properties": {
+        "status": {"type": "string", "enum": ["passed", "failed"]},
+        "expected_findings": {"type": "integer", "minimum": 0},
+        "actual_findings": {"type": "integer", "minimum": 0},
+        "blocking_evidence_loss_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "open_limitations": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "claim_boundary": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "join_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step", "artifact", "ref", "status"],
+      "properties": {
+        "step": {"type": "integer", "minimum": 1},
+        "artifact": {"type": "string", "minLength": 1},
+        "ref": {"type": "string", "minLength": 1},
+        "status": {"$ref": "#/$defs/reconstruction_evidence_status"}
+      }
+    },
+    "evidence_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "ref"],
+      "properties": {
+        "status": {"$ref": "#/$defs/reconstruction_evidence_status"},
+        "ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "reconstruction_evidence_status": {
+      "type": "string",
+      "enum": ["present", "ready", "passed", "denied", "missing", "failed", "blocked"]
+    }
+  }
+}

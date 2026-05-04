@@ -1,0 +1,42 @@
+schema_version: "1.0"
+source_name: operational_evidence_plane
+
+# Canonical Decision Trace Reconstructor `generic-jsonl` mapping config for
+# OEP-emitted JSONL streams produced by `scripts/to_dtr_jsonl.py`.
+#
+# Records carry a `kind` field that this mapping translates to DTR fragment
+# kinds. The fragment kind set is fixed by the upstream
+# `decision-trace-reconstructor` v0.1.0 release.
+
+fields:
+  fragment_id: id
+  timestamp: ts
+  actor_id: actor_id
+  payload: null
+
+kind_field: kind
+
+# OEP record kind -> DTR fragment kind
+kind_map:
+  manifest: config_snapshot       # release manifest binds the authorization envelope
+  prompt: agent_message            # synthesised prompt anchoring the inputs property
+  policy: policy_snapshot          # OPA-backed permission packet (policy_basis evidence)
+  tool: tool_call                  # agent_step_event with action_type (output_action)
+  state: state_mutation            # replay_handle to SQLite (post_condition_state)
+  human: human_approval            # human approval / rejection (operator_identity)
+  final: agent_message             # deterministic eval result (final agent message)
+
+skip_kinds: []
+
+# State-mutation predicate. Tools whose name matches the regex are also
+# considered state mutations for output_action / post_condition_state purposes.
+# OEP keeps this conservative; the explicit kind=state record from the replay
+# handle is the primary state evidence.
+state_mutation_predicate:
+  field: tool
+  matches_regex: (write|exec|drop|delete|update|insert|push|publish)
+
+stack_tier_field: tier
+stack_tier_default: within_stack
+
+architecture: single_agent

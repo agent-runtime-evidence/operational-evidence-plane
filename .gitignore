@@ -1,0 +1,30 @@
+.DS_Store
+.env
+.env.*
+.venv/
+venv/
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+build/
+dist/
+site/
+
+*.sqlite
+*.sqlite3
+*.db
+
+# Decision Trace Reconstructor integration: generated intermediates.
+# `*.jsonl` and `*.expected_feasibility.json` are committed; only the
+# fragments manifest and per-run report directory are regenerable.
+integrations/decision-trace-reconstructor/*.fragments.json
+integrations/decision-trace-reconstructor/*.report/
+

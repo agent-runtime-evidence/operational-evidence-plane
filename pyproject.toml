@@ -1,0 +1,120 @@
+[build-system]
+requires = ["setuptools>=77,<80", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "operational-evidence-plane"
+version = "0.1.0"
+requires-python = ">=3.11,<4"
+description = "Vendor-neutral reference implementation for operational evidence across agent release-time and runtime layers"
+readme = "README.md"
+license = "Apache-2.0"
+authors = [{name = "Oleg Solozobov"}]
+keywords = [
+  "agent runtime",
+  "operational evidence",
+  "release manifest",
+  "replay",
+  "opa",
+  "sqlite"
+]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development :: Libraries :: Python Modules"
+]
+dependencies = [
+  "jsonschema>=4.23,<5"
+]
+
+[project.urls]
+Homepage = "https://github.com/agent-runtime-evidence/operational-evidence-plane"
+Repository = "https://github.com/agent-runtime-evidence/operational-evidence-plane"
+Issues = "https://github.com/agent-runtime-evidence/operational-evidence-plane/issues"
+Changelog = "https://github.com/agent-runtime-evidence/operational-evidence-plane/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/agent-runtime-evidence/operational-evidence-plane/blob/main/docs/architecture.md"
+
+[project.scripts]
+oep-check-reconstruction = "oep_playbooks.cli:main"
+oep-run-demo = "oep_demo.cli:main"
+oep-verify-manifest = "oep_manifest.cli:main"
+
+[project.optional-dependencies]
+dev = [
+  "build>=1,<2",
+  "coverage>=7,<8",
+  "pytest>=8,<9",
+  "mypy>=1.10,<2",
+  "ruff>=0.8,<1",
+  "types-jsonschema>=4.23,<5"
+]
+
+[tool.setuptools.packages.find]
+where = [
+  ".",
+  "manifest/src",
+  "events/src",
+  "permissions/src",
+  "traces/src",
+  "playbooks/src",
+  "demo/src"
+]
+include = [
+  "oep_verify",
+  "oep_manifest",
+  "oep_events",
+  "oep_permissions",
+  "oep_traces",
+  "oep_playbooks",
+  "oep_demo"
+]
+
+[tool.setuptools.package-data]
+oep_verify = ["py.typed"]
+oep_manifest = ["py.typed", "resources/schema/*.json", "resources/examples/*.json"]
+oep_events = ["py.typed", "resources/schema/*.json", "resources/examples/*.json"]
+oep_permissions = [
+  "py.typed",
+  "resources/schema/*.json",
+  "resources/examples/*.json",
+  "resources/policy/*.rego",
+  "resources/policy/input/*.json"
+]
+oep_traces = ["py.typed", "resources/schema/*.json", "resources/examples/*.json"]
+oep_playbooks = ["py.typed", "resources/*.md", "resources/schema/*.json", "resources/examples/*.json"]
+oep_demo = [
+  "py.typed",
+  "resources/fixtures/*.patch",
+  "resources/model/*.md",
+  "resources/prompts/*.md",
+  "resources/state/*.md"
+]
+
+[tool.uv.workspace]
+members = [
+  "manifest",
+  "events",
+  "permissions",
+  "traces",
+  "playbooks",
+  "demo"
+]
+# translations/bedrock is documentation and mapping data with a standalone
+# verification script, not an installable workspace package.
+
+[tool.pytest.ini_options]
+testpaths = [
+  "tests"
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

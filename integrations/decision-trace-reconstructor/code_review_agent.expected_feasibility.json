@@ -1,0 +1,53 @@
+{
+  "scenario_id": "oep_code_review_agent",
+  "architecture": "single_agent",
+  "stack_tier": "within_stack",
+  "fragments": 6,
+  "units_detected": 2,
+  "completeness_pct": 85.7,
+  "dominant_mode": 2,
+  "dominant_break": "decision_diffusion",
+  "feasibility_counts": {
+    "fully_fillable": 6,
+    "partially_fillable": 0,
+    "structurally_unfillable": 1,
+    "opaque": 0
+  },
+  "per_property": [
+    {
+      "property": "inputs",
+      "category": "fully_fillable",
+      "gap": null
+    },
+    {
+      "property": "policy_basis",
+      "category": "fully_fillable",
+      "gap": null
+    },
+    {
+      "property": "operator_identity",
+      "category": "fully_fillable",
+      "gap": null
+    },
+    {
+      "property": "authorization_envelope",
+      "category": "fully_fillable",
+      "gap": null
+    },
+    {
+      "property": "reasoning_trace",
+      "category": "structurally_unfillable",
+      "gap": "no reasoning_trace fragment in unit"
+    },
+    {
+      "property": "output_action",
+      "category": "fully_fillable",
+      "gap": null
+    },
+    {
+      "property": "post_condition_state",
+      "category": "fully_fillable",
+      "gap": null
+    }
+  ]
+}
