@@ -5,6 +5,7 @@
 > and replay state for agentic workflows.
 
 [![Verify](https://github.com/agent-runtime-evidence/operational-evidence-plane/actions/workflows/verify.yml/badge.svg)](https://github.com/agent-runtime-evidence/operational-evidence-plane/actions/workflows/verify.yml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20051037.svg)](https://doi.org/10.5281/zenodo.20051037)
 
 Operational Evidence Plane makes agent behavior reconstructable after a release. It binds what was shipped (model, prompt, tool schema, policy, workflow, rollout, eval, and data-state references) to what happened at runtime (events, permission decisions, traces, replay state, eval results, and reconstruction packets).
 

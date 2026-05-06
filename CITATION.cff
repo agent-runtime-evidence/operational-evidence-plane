@@ -7,6 +7,7 @@ authors:
     given-names: "Oleg"
 version: "0.1.0"
 date-released: "2026-05-06"
+doi: "10.5281/zenodo.20051037"
 license: "Apache-2.0"
 url: "https://github.com/agent-runtime-evidence/operational-evidence-plane"
 repository-code: "https://github.com/agent-runtime-evidence/operational-evidence-plane"
