@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://operational-evidence-plane.local/schema/tool_permission_packet.v0.schema.json",
   "title": "Operational Evidence Plane Tool Permission Packet v0",
-  "description": "Permission decision evidence packet for joining an agent tool call to release manifest, runtime event, trace, and OPA policy decision evidence.",
+  "description": "Permission decision evidence packet for joining an agent tool call to release manifest, runtime event, trace, and OPA policy decision evidence. The v0.2 release extends this packet with optional replayable permission trace fields (scoped_credential_lifetime, approval_capture, policy_bundle_version, release_manifest_version, model_alias, resolved_model_version, model_provider). These fields are additive and remain optional so v0.1 records continue to validate; v0.2 examples populate them.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -73,6 +73,72 @@
     },
     "decision": {
       "$ref": "#/$defs/decision"
+    },
+    "scoped_credential_lifetime": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "string",
+          "minLength": 1,
+          "description": "ISO 8601 duration describing the time-to-live of the scoped credential used at the call (e.g. PT15M)."
+        }
+      ]
+    },
+    "approval_capture": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "#/$defs/approval_capture"}
+      ]
+    },
+    "policy_bundle_version": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "description": "Hash of the policy bundle in effect at the call. Matches the manifest's policy layer digest."
+        }
+      ]
+    },
+    "release_manifest_version": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "description": "Hash of the release manifest in effect at the call."
+        }
+      ]
+    },
+    "model_alias": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "string",
+          "minLength": 1,
+          "description": "Model alias as called by the agent (e.g. claude-sonnet-4-6). Recording-only field; not a model-quality claim."
+        }
+      ]
+    },
+    "resolved_model_version": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resolved underlying model version at call time. Recorded so replay records stay stable across silent provider-side model changes."
+        }
+      ]
+    },
+    "model_provider": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "string",
+          "minLength": 1,
+          "description": "Provider of the model (e.g. anthropic, openai, google). Recording-only field; not a vendor endorsement."
+        }
+      ]
     },
     "links": {
       "$ref": "#/$defs/links"
@@ -147,6 +213,25 @@
         "opa_result_ref": {"type": "string", "minLength": 1}
       }
     },
+    "approval_capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approver", "captured_at", "approval_type"],
+      "properties": {
+        "approver": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "id", "display_name"],
+          "properties": {
+            "type": {"type": "string", "enum": ["human", "system"]},
+            "id": {"type": "string", "minLength": 1},
+            "display_name": {"type": "string", "minLength": 1}
+          }
+        },
+        "captured_at": {"type": "string", "format": "date-time"},
+        "approval_type": {"type": "string", "minLength": 1}
+      }
+    },
     "links": {
       "type": "object",
       "additionalProperties": false,
@@ -164,4 +249,3 @@
     }
   }
 }
-

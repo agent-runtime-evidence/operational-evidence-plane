@@ -10,9 +10,9 @@ DTR_INTEGRATION_DIR := integrations/decision-trace-reconstructor
 DTR_SCENARIO ?= code_review_agent
 DTR_SCENARIOS ?= $(shell $(PYTHON) -c "from oep_verify.scenarios import scenario_names; print(' '.join(scenario_names()))")
 
-.PHONY: verify compile validate-manifest validate-events validate-permissions validate-demo validate-eval validate-traces validate-playbooks validate-bedrock check-docs test test-policy coverage lint typecheck build-check update-digests check-digests clean-state regen-dtr-jsonl check-dtr-jsonl validate-dtr
+.PHONY: verify compile validate-manifest validate-events validate-permissions validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-replay-cli check-docs check-permission-digests test test-policy coverage lint typecheck build-check update-digests check-digests clean-state regen-dtr-jsonl check-dtr-jsonl validate-dtr
 
-verify: compile validate-manifest validate-events test-policy validate-permissions validate-demo validate-eval validate-traces validate-playbooks validate-bedrock check-dtr-jsonl check-docs build-check
+verify: compile validate-manifest validate-events test-policy validate-permissions check-permission-digests validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-replay-cli check-dtr-jsonl check-docs build-check
 
 compile:
 	$(PYTHON) -m compileall -q $(PACKAGES)
@@ -25,6 +25,9 @@ validate-events:
 
 validate-permissions:
 	$(PYTHON) permissions/scripts/check_tool_permission_packet.py
+
+check-permission-digests:
+	$(PYTHON) permissions/scripts/update_permission_digests.py --check
 
 validate-demo:
 	$(PYTHON) demo/scripts/run_code_review_demo.py
@@ -41,6 +44,13 @@ validate-playbooks:
 
 validate-bedrock:
 	$(PYTHON) translations/bedrock/scripts/check_bedrock_translation.py
+
+validate-mcp:
+	$(PYTHON) integrations/mcp/scripts/to_oep_permission.py
+
+validate-replay-cli:
+	$(PYTHON) -m oep_verify.cli replay pder_code_review_read_diff_0001 --field decision_id > /dev/null
+	$(PYTHON) -m oep_verify.cli replay pder_code_review_read_diff_0001 --field policy_bundle_version > /dev/null
 
 check-docs:
 	$(PYTHON) scripts/check_public_docs.py
@@ -62,15 +72,18 @@ build-check:
 
 update-digests:
 	$(PYTHON) manifest/scripts/update_manifest_digests.py
+	$(PYTHON) permissions/scripts/update_permission_digests.py
 
 check-digests:
 	$(PYTHON) manifest/scripts/update_manifest_digests.py --check
+	$(PYTHON) permissions/scripts/update_permission_digests.py --check
 
 coverage:
 	rm -f $(COVERAGE_DEMO_STATE)
 	$(PYTHON) -m coverage erase
 	$(OPA) test $(POLICY_TEST_FILES)
 	$(PYTHON) -m coverage run --source="$(COVERAGE_SOURCE)" manifest/scripts/update_manifest_digests.py --check
+	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" permissions/scripts/update_permission_digests.py --check
 	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" manifest/scripts/check_release_manifest.py
 	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" events/scripts/check_agent_step_event.py
 	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" permissions/scripts/check_tool_permission_packet.py
@@ -80,6 +93,8 @@ coverage:
 	OEP_DEMO_STATE_PATH="$(COVERAGE_DEMO_STATE)" $(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" traces/scripts/check_operational_trace.py
 	OEP_DEMO_STATE_PATH="$(COVERAGE_DEMO_STATE)" $(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" playbooks/scripts/check_reconstruction_packet.py
 	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" translations/bedrock/scripts/check_bedrock_translation.py
+	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" integrations/mcp/scripts/to_oep_permission.py
+	OEP_DEMO_STATE_PATH="$(COVERAGE_DEMO_STATE)" $(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" -m oep_verify.cli replay pder_code_review_read_diff_0001 --field decision_id > /dev/null
 	$(PYTHON) scripts/check_public_docs.py
 	@set -e; \
 	tmp_dir=$$(mktemp -d); \

@@ -7,11 +7,19 @@
 [![Verify](https://github.com/agent-runtime-evidence/operational-evidence-plane/actions/workflows/verify.yml/badge.svg)](https://github.com/agent-runtime-evidence/operational-evidence-plane/actions/workflows/verify.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20051037.svg?v=2)](https://doi.org/10.5281/zenodo.20051037)
 
-Operational Evidence Plane makes agent behavior reconstructable after a release. It binds what was shipped (model, prompt, tool schema, policy, workflow, rollout, eval, and data-state references) to what happened at runtime (events, permission decisions, traces, replay state, eval results, and reconstruction packets).
+Operational Evidence Plane is a small, runnable reference implementation for making agent runtime behavior reconstructable after release. It binds release-time intent (model, prompt, tool schema, policy, workflow, rollout, eval, and data-state references) to runtime evidence (events, OPA-backed permission decisions, traces, replay state, eval results, and reconstruction packets).
+
+A quick scan should make three things clear: the repository is code, not a concept note (`make verify` rebuilds replay state and checks joins); it is vendor-neutral, not a replacement for Bedrock, LangSmith, OPA, OTel, MCP, A2A, or cloud release tools; and it is intentionally bounded to a deterministic code-review demo using mocked LLM behavior, SQLite state, and real OPA decisions.
 
 Use it to inspect whether a runtime action can be joined back to a release manifest, verify policy decisions against trace and replay evidence, and package a minimal evidence chain that humans and CI can review without a vendor-specific control plane.
 
 This repository is an open, vendor-neutral reference implementation. It extends patterns already visible in vendor-native agent versions, prompt registries, policy engines, and telemetry specs, but does not replace them and does not claim standardization or production readiness. The first demo target is a deterministic code-review agent using Python, SQLite, real OPA decisions, scenario-agnostic schemas, and mocked LLM behavior.
+
+## Evidence Chain
+
+![Operational Evidence Plane evidence chain](docs/oep_evidence_chain.svg)
+
+The inspectable path is intentionally narrow: a release manifest names the shipped configuration, runtime events and OPA-backed permission packets record what happened, trace and replay state preserve the joins, and eval/reconstruction outputs show what can and cannot be reconstructed.
 
 ## Quickstart
 
@@ -40,7 +48,7 @@ uv sync --extra dev --locked
 make verify
 ```
 
-This compiles the packages, tests and evaluates the OPA policy, regenerates `demo/state/code_review_agent.sqlite`, checks every cross-artifact join, validates the deterministic eval, checks the reconstruction packet, and verifies the committed DTR JSONL projection.
+This compiles the packages, tests and evaluates the OPA policy, regenerates `demo/state/code_review_agent.sqlite`, checks every cross-artifact join, validates the deterministic eval, checks the reconstruction packet, verifies the committed DTR JSONL projection, checks the MCP -> OEP permission packet projection, and exercises the `oep replay` reader against generated replay state.
 It also builds the root wheel/sdist, installs the wheel in a temporary virtual environment, and checks that the installed packages keep their typing markers.
 
 Smoke tests run through pytest:
@@ -73,7 +81,13 @@ Installed package entry points:
 oep-verify-manifest
 oep-run-demo --state-path /tmp/oep-code-review.sqlite
 oep-check-reconstruction
+oep replay pder_code_review_read_diff_0001
 ```
+
+`oep replay <decision_id>` is a read-only reader over the local SQLite
+replay store. It joins the recorded permission packet, agent-step event,
+trace bundle, and release-manifest summary for a recorded decision id.
+It does not make live model or vendor calls.
 
 To inspect generated replay state:
 
@@ -113,6 +127,7 @@ For the fastest read, open these in order:
 - [Contributing guide](CONTRIBUTING.md)
 - [Bedrock translation](translations/bedrock/README.md)
 - [Decision Trace Reconstructor integration](integrations/decision-trace-reconstructor/README.md)
+- [Model Context Protocol (MCP) adapter](integrations/mcp/README.md)
 
 ## Current Artifacts
 
@@ -176,6 +191,99 @@ release manifest -> agent-step event -> OPA-backed permission packet -> trace bu
 ```
 
 The primary eval is a deterministic smoke check over one synthetic fixture. The denied path demonstrates blocked replay readiness when OPA denies a tool call and no SQLite replay state is generated. Neither is a benchmark, model-quality claim, safety certification, or production monitoring result.
+
+## Replayable Permission Trace Fields (v0.2)
+
+The v0.2 release extends the OPA-backed permission packet with optional
+replayable permission trace fields. These fields are additive: v0.1
+records that omit them still validate. The deterministic code-review
+demo populates them so the v0.2 reproducibility walkthrough can show the
+new primitives in use.
+
+| Field | Description |
+|---|---|
+| `tool_call_id` | Identifier for the tool invocation event (also present in v0.1). |
+| `scoped_credential_lifetime` | ISO 8601 time-to-live of the scoped credential used at the call (for example `PT15M`). |
+| `approval_capture` | Captured human approval (if required), including approver identity, captured-at timestamp, and approval type. `null` when no human approval was required. |
+| `policy_bundle_version` | `sha256:` hash of the policy bundle in effect at the call. Matches the release manifest's policy layer digest. |
+| `release_manifest_version` | `sha256:` hash of the release manifest in effect at the call. |
+| `model_alias` | Model alias as called by the agent (for example `claude-sonnet-4-6`). |
+| `resolved_model_version` | Resolved underlying model version at call time. |
+| `model_provider` | Provider of the model (for example `anthropic`, `openai`, `google`). |
+
+The `model_*` fields are recorded because API providers can change
+underlying model behavior under unchanged aliases. Recording the
+resolved version and provider at call time keeps replay records stable
+across silent provider-side model changes. This is a record-keeping
+addition, not a model-quality claim.
+
+The v0.2 fields are joined by the stable `pder_*` decision id (the
+`packet_id` value) and the `replay_handle` primitives carried by the
+v0.1 chain.
+
+## Record-Keeping Reference Table
+
+The table below maps OEP record fields to record-keeping requirements
+named in well-known frameworks. It illustrates which event fields the
+requirements describe; it is documentation and education, not a
+compliance or audit claim. The repository does not create compliance,
+audit readiness, or legal sufficiency by itself — see [the public
+claims guide](docs/public_claims.md) §Required Boundaries.
+
+| OEP record field | EU AI Act event field cited | NIST AI RMF 1.0 function |
+|---|---|---|
+| `decision_id` + per-event timestamps | Article 12 (Record-keeping) | MEASURE function records |
+| `policy_bundle_version` + `release_manifest_version` | Article 13 (Transparency and provision of information to deployers) | MEASURE function records |
+| `approval_capture` (human-in-the-loop) | Article 14 (Human oversight) | MANAGE function records |
+| Retention notes in README (not code) | Article 18 (Documentation keeping) | GOVERN function records |
+| Replay trace as runtime evidence | Article 26(5) (deployer operational monitoring obligation) | MEASURE function records |
+
+NIST AI RMF function-citation specificity is intentionally kept at the
+four canonical function names (GOVERN / MAP / MEASURE / MANAGE) without
+sub-function commitment. The NIST AI Risk Management Framework primary
+source is version 1.0, released January 2023; the Generative AI Profile
+(NIST AI 600-1, July 2024) is a separate companion document and is not
+versioned as "1.1". Article numbers and titles refer to Regulation (EU)
+2024/1689 (the EU AI Act). The table is reference material, not a
+binding mapping.
+
+**Retention.** This repository is a reference implementation. It does
+not retain runtime records on behalf of any deployer. Operators that
+choose to reuse the schemas are responsible for record retention,
+storage, access controls, and any legal requirements that apply to
+their deployment context.
+
+## Replay CLI
+
+```bash
+oep replay <decision_id>
+```
+
+`oep replay` is a thin read-only reader over the local SQLite replay
+store generated by `oep-run-demo` or `make verify`. It reconstructs the
+recorded permission trace for a decision id (the `pder_*` packet
+identifier) by joining the recorded permission packet, agent-step
+event, trace bundle, and release-manifest summary.
+
+- The CLI does not make live model or vendor API calls.
+- It does not introduce new persistence; it only reads existing rows.
+- Pass `--state-path` to read from an alternate SQLite path, or set
+  `OEP_DEMO_STATE_PATH` before running the demo.
+- Pass `--field <name>` to print a specific record field instead of the
+  full JSON record.
+
+## MCP Adapter
+
+The [`integrations/mcp/`](integrations/mcp/) directory ships an
+illustrative adapter that translates one Model Context Protocol
+(MCP) `tools/call` envelope into an OEP permission packet, including
+the v0.2 replayable permission trace fields. It is documentation and
+mapping data with a standalone script — it does not call MCP servers
+or vendor APIs.
+
+The adapter is illustration, not a replacement for MCP, LangSmith,
+Bedrock, OTel, A2A, or OPA. Other framework adapters (LangGraph,
+OpenAI Assistants, Bedrock) remain post-core translation material.
 
 ## Claim Boundaries
 

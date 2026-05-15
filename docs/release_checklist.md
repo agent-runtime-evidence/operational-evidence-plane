@@ -38,23 +38,44 @@ The public Python distribution is the root package, `operational-evidence-plane`
 
 It does not mean production readiness, compliance readiness, standardization, legal-audit sufficiency, or a vendor replacement.
 
+## Pre-Publication Privacy Pass
+
+This repository is public; the planning context that produces each release scope is not. Every new doc edit, README change, CHANGELOG entry, code comment, and commit message must be scrubbed of private-context references before merge to `main` or release tag.
+
+Strip before merge:
+
+- **Local absolute paths.** No `/Users/<name>/`, no references to sibling repositories or planning directories outside this tree.
+- **Private task identifiers.** No external task IDs, dated decision tags, or internal register entries — those live in private planning, not in public commits or docs.
+- **Private rule citations.** No references to private feedback notes, strategy files, or memory-system entries in commit messages, doc text, or code comments.
+- **Strategic «why».** Career / hiring-signal coupling, content-cadence rationale, paper-track sequencing, dated planning gates, competitive vendor maps — public docs justify decisions on engineering grounds (record-keeping requirements, replay correctness, integration surface), not on planning-calendar grounds.
+- **Self-citation framing.** Repo docs use third-person artifact language («v0.1 shipped 2026-05-06»), not first-person framing («as I shipped in v0.1»). First-person framing belongs to external content surfaces, not repo files.
+- **Drafting noise.** Brainstorm tags, TODO-for-author comments, internal-question placeholders, and unresolved disagreements get resolved or removed before merge.
+
+How to run the pass:
+
+1. `git diff --staged` before each commit; scan the diff for absolute paths, external task IDs, and private file references.
+2. Before tagging a release, re-read every file touched in this cycle (`CHANGELOG.md`, `README.md`, `docs/*.md`, source comments) for the patterns above.
+3. If a private-context concept genuinely belongs in public docs, translate it to public language: «record-keeping requirements» instead of an internal article-citation chain, «landscape research suggests» instead of an internal research-task ID, «v0.1 release» instead of an internal milestone tag.
+
 ## Publication Steps
 
 1. Create the release branch or commit after all required checks pass.
 2. Create an annotated tag for the release version.
-3. Publish the GitHub release with the changelog summary and claim boundary.
-4. If publishing to PyPI, publish only the root distribution for `v0.1.x`.
-5. Verify the release artifact by installing it in a fresh virtual environment and running the packaged entry points.
+3. Publish the GitHub release with the changelog summary and claim boundary. The configured GitHub→Zenodo integration mints the release DOI automatically; no manual Zenodo step is required.
+4. After Zenodo emits the new DOI, update the README DOI badge and `CITATION.cff` to point at the new release archive.
+5. If publishing to PyPI, publish only the root distribution for the current release line.
+6. Verify the release artifact by installing it in a fresh virtual environment and running the packaged entry points.
 
 ## Files To Inspect Before Publication
 
 1. `README.md`
 2. `CHANGELOG.md`
 3. `docs/architecture.md`
-4. `docs/public_claims.md`
-5. `SECURITY.md`
-6. `CITATION.cff`
-7. `CONTRIBUTING.md`
-8. `pyproject.toml`
-9. `playbooks/examples/code_review_reconstruction_packet.v0.json`
-10. `translations/bedrock/source_notes.md`
+4. `docs/decision_log.md`
+5. `docs/public_claims.md`
+6. `SECURITY.md`
+7. `CITATION.cff`
+8. `CONTRIBUTING.md`
+9. `pyproject.toml`
+10. `playbooks/examples/code_review_reconstruction_packet.v0.json`
+11. `translations/bedrock/source_notes.md`

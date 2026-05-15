@@ -41,11 +41,17 @@
     "matched_rule": "allow_reference_code_review_diff_read",
     "opa_result_ref": "opa eval --data permissions/policy/tool_permissions.rego --input permissions/policy/input/code_review_read_diff.json data.oep.permissions.decision"
   },
+  "scoped_credential_lifetime": "PT15M",
+  "approval_capture": null,
+  "policy_bundle_version": "sha256:e0d5563e9e046960f5435ab1e00f26df8925e16ca7a207ee37df65b7151bcb27",
+  "release_manifest_version": "sha256:61ae8d59b91cabd79dfa4f2e4715b9aa4ac09604443f33cac3b7174efa168e95",
+  "model_alias": "deterministic-mock-reviewer",
+  "resolved_model_version": "0.1.0",
+  "model_provider": "operational-evidence-plane-reference",
   "links": {
     "event_ref": "events/examples/code_review_agent_step.v0.json",
     "release_manifest_ref": "manifest/examples/code_review_agent_release.v0.json",
     "trace_ref": "traces/examples/code_review_agent_trace.v0.json"
   },
-  "claim_boundary": "This packet records one OPA-backed permission decision for a synthetic reference demo. It is not a policy engine, standard permission format, compliance proof, or production authorization design."
+  "claim_boundary": "This packet records one OPA-backed permission decision for a synthetic reference demo. The v0.2 fields (scoped_credential_lifetime, approval_capture, policy_bundle_version, release_manifest_version, model_alias, resolved_model_version, model_provider) are record-keeping additions for replayability; they do not create a compliance, audit, or model-quality claim."
 }
-

@@ -38,7 +38,7 @@
       "version": "0.1.0",
       "binding_status": "resolved",
       "uri": "permissions/schema/tool_permission_packet.v0.schema.json",
-      "digest": "sha256:ed01c86854ec751a948089073d8ff6278215fca75638bf4ddbe3769a990e679d",
+      "digest": "sha256:159da9df21f69fd93e2a96b57689dc3e496d8e75f8a063e5238e584f65d3a92d",
       "evidence_role": "Binds the allowed tool/action schema for runtime permission packets.",
       "notes": "The first tool surface is represented by the permission packet schema for repository diff inspection."
     },

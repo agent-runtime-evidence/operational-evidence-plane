@@ -1,0 +1,110 @@
+# MCP -> OEP tool permission packet mapping (v0)
+#
+# Field-by-field translation from a synthetic MCP `tools/call` event
+# envelope to the OEP `tool_permission_packet.v0` schema, including the
+# v0.2 replayable-permission-trace fields.
+#
+# The mapping is illustration: it shows one inspectable way to project a
+# JSON-RPC `tools/call` envelope into the OEP permission packet, not a
+# replacement for MCP, OPA, LangSmith, or Bedrock.
+
+schema_version: oep.mcp_mapping.v0
+source: model-context-protocol-tools-call
+target: oep.tool_permission_packet.v0
+
+# Identifiers carried unchanged from the MCP envelope into the OEP packet.
+identity:
+  - mcp_field: request.id
+    oep_field: tool_call_id
+    notes: |
+      The JSON-RPC request id is reused as the OEP tool call id. The
+      synthetic example uses the demo tool_call_id directly so the
+      projection matches the committed permission example byte-for-byte.
+
+  - mcp_field: session.event_id
+    oep_field: event_id
+
+  - mcp_field: session.trace_id
+    oep_field: trace_id
+
+  - mcp_field: session.span_id
+    oep_field: span_id
+
+  - mcp_field: session.release_manifest_id
+    oep_field: release_manifest_id
+
+  - mcp_field: session.packet_id
+    oep_field: packet_id
+
+  - mcp_field: session.decision_time
+    oep_field: decision_time
+
+# Tool call surface from the MCP request and server response.
+tool_call:
+  - mcp_field: request.params.name
+    oep_field: tool.name
+  - mcp_field: request.params.tool_version
+    oep_field: tool.version
+  - mcp_field: request.params.operation
+    oep_field: tool.operation
+  - mcp_field: request.params.arguments
+    oep_field: requested_action.input_ref
+    notes: |
+      The synthetic MCP envelope expresses the diff path as an argument.
+      The OEP packet records it as the `input_ref` of the requested
+      action. Concrete adapters may normalize this differently.
+  - mcp_field: request.params.action_type
+    oep_field: requested_action.action_type
+  - mcp_field: request.params.action_name
+    oep_field: requested_action.name
+  - mcp_field: request.params.resource
+    oep_field: resource
+
+# Actor and session metadata.
+actor:
+  - mcp_field: actor
+    oep_field: actor
+
+# Policy / decision metadata carried via the MCP server response.
+policy:
+  - mcp_field: response.result.policy_ref
+    oep_field: policy
+  - mcp_field: response.result.decision
+    oep_field: decision
+  - mcp_field: response.result.links
+    oep_field: links
+  - mcp_field: session.claim_boundary
+    oep_field: claim_boundary
+
+# v0.2 replayable permission trace fields.
+replay_v0_2:
+  - mcp_field: session.scoped_credential_lifetime
+    oep_field: scoped_credential_lifetime
+    notes: ISO 8601 duration. Null if the MCP transport did not scope a credential.
+  - mcp_field: session.approval_capture
+    oep_field: approval_capture
+    notes: Null when no human approval was required for the call.
+  - mcp_field: session.policy_bundle_version
+    oep_field: policy_bundle_version
+    notes: Hash of the policy bundle in effect at the call.
+  - mcp_field: session.release_manifest_version
+    oep_field: release_manifest_version
+    notes: Hash of the release manifest in effect at the call.
+  - mcp_field: session.model_binding.alias
+    oep_field: model_alias
+  - mcp_field: session.model_binding.resolved_version
+    oep_field: resolved_model_version
+  - mcp_field: session.model_binding.provider
+    oep_field: model_provider
+
+# Fields the adapter does not consume.
+unmapped:
+  - request.jsonrpc
+  - response.jsonrpc
+  - response.id
+  - response.result.content
+  - response.result.isError
+notes_unmapped: |
+  JSON-RPC framing fields and the rendered tool result content are not
+  part of the OEP permission record. The OEP packet records the decision
+  about the call, not the tool's return payload.

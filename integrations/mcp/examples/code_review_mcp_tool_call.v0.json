@@ -1,0 +1,76 @@
+{
+  "mapping_version": "oep.mcp_mapping.v0",
+  "session": {
+    "packet_id": "pder_code_review_read_diff_0001",
+    "decision_time": "2026-05-04T00:00:01Z",
+    "release_manifest_id": "rmf_code_review_agent_2026_05_04_v0",
+    "event_id": "evt_code_review_agent_step_0001",
+    "trace_id": "11111111111111111111111111111111",
+    "span_id": "2222222222222222",
+    "scoped_credential_lifetime": "PT15M",
+    "approval_capture": null,
+    "policy_bundle_version": "sha256:e0d5563e9e046960f5435ab1e00f26df8925e16ca7a207ee37df65b7151bcb27",
+    "release_manifest_version": "sha256:61ae8d59b91cabd79dfa4f2e4715b9aa4ac09604443f33cac3b7174efa168e95",
+    "model_binding": {
+      "alias": "deterministic-mock-reviewer",
+      "resolved_version": "0.1.0",
+      "provider": "operational-evidence-plane-reference"
+    },
+    "claim_boundary": "This packet records one OPA-backed permission decision for a synthetic reference demo. The v0.2 fields (scoped_credential_lifetime, approval_capture, policy_bundle_version, release_manifest_version, model_alias, resolved_model_version, model_provider) are record-keeping additions for replayability; they do not create a compliance, audit, or model-quality claim."
+  },
+  "actor": {
+    "type": "agent",
+    "id": "agent_code_review_reference_demo",
+    "display_name": "code-review-agent-reference-demo"
+  },
+  "request": {
+    "jsonrpc": "2.0",
+    "id": "tool_read_diff_0001",
+    "method": "tools/call",
+    "params": {
+      "name": "read_diff",
+      "tool_version": "0.1.0",
+      "operation": "read",
+      "action_type": "inspect_diff",
+      "action_name": "inspect synthetic repository diff",
+      "arguments": "demo/fixtures/diff_synthetic_001.patch",
+      "resource": {
+        "type": "repository_diff",
+        "id": "diff_synthetic_001",
+        "uri": "demo/fixtures/diff_synthetic_001.patch",
+        "mutable": false
+      }
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": "tool_read_diff_0001",
+    "result": {
+      "policy_ref": {
+        "engine": "opa",
+        "package": "data.oep.permissions",
+        "policy_id": "opa-tool-permission-policy",
+        "policy_version": "0.1.0",
+        "policy_uri": "permissions/policy/tool_permissions.rego"
+      },
+      "decision": {
+        "allow": true,
+        "reason": "reference code review agent may inspect an immutable synthetic diff",
+        "matched_rule": "allow_reference_code_review_diff_read",
+        "opa_result_ref": "opa eval --data permissions/policy/tool_permissions.rego --input permissions/policy/input/code_review_read_diff.json data.oep.permissions.decision"
+      },
+      "links": {
+        "event_ref": "events/examples/code_review_agent_step.v0.json",
+        "release_manifest_ref": "manifest/examples/code_review_agent_release.v0.json",
+        "trace_ref": "traces/examples/code_review_agent_trace.v0.json"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Synthetic diff inspection completed; no live tool execution is performed by this reference adapter."
+        }
+      ],
+      "isError": false
+    }
+  }
+}

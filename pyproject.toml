@@ -40,6 +40,7 @@ Changelog = "https://github.com/agent-runtime-evidence/operational-evidence-plan
 Documentation = "https://github.com/agent-runtime-evidence/operational-evidence-plane/blob/main/docs/architecture.md"
 
 [project.scripts]
+oep = "oep_verify.cli:main"
 oep-check-reconstruction = "oep_playbooks.cli:main"
 oep-run-demo = "oep_demo.cli:main"
 oep-verify-manifest = "oep_manifest.cli:main"

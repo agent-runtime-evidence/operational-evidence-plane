@@ -26,7 +26,7 @@ from oep_verify.artifacts import (
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_SCENARIOS = ("code_review_agent", "code_review_agent_denied")
-CONSOLE_SCRIPTS = ("oep-check-reconstruction", "oep-run-demo", "oep-verify-manifest")
+CONSOLE_SCRIPTS = ("oep", "oep-check-reconstruction", "oep-run-demo", "oep-verify-manifest")
 
 
 def format_command(args: Sequence[str]) -> str:
@@ -145,6 +145,9 @@ def console_script_path(venv_python: Path, script_name: str) -> Path:
 
 def check_installed_wheel(wheel: Path, venv_python: Path) -> None:
     run([str(venv_python), "-m", "pip", "--disable-pip-version-check", "install", "--no-deps", str(wheel)])
+    # `oep replay` runs schema validation on packets read from SQLite, so the
+    # declared `jsonschema` runtime dep must be present in the smoke venv.
+    run([str(venv_python), "-m", "pip", "--disable-pip-version-check", "install", "jsonschema>=4.23,<5"])
     state_path = venv_python.parent.parent / "oep-smoke-state.sqlite"
     smoke_script = textwrap.dedent(
         f"""
@@ -246,15 +249,28 @@ def check_installed_wheel(wheel: Path, venv_python: Path) -> None:
         script_path = console_script_path(venv_python, script_name)
         if not script_path.exists():
             raise SystemExit(f"console script missing after wheel install: {script_name}")
+    cli_state_path = venv_python.parent.parent / "cli-state.sqlite"
     run(
         [
             str(console_script_path(venv_python, "oep-run-demo")),
             "--state-path",
-            str(venv_python.parent.parent / "cli-state.sqlite"),
+            str(cli_state_path),
         ]
     )
     run([str(console_script_path(venv_python, "oep-verify-manifest")), "--help"])
     run([str(console_script_path(venv_python, "oep-check-reconstruction")), "--help"])
+    run([str(console_script_path(venv_python, "oep")), "--help"])
+    run(
+        [
+            str(console_script_path(venv_python, "oep")),
+            "replay",
+            "pder_code_review_read_diff_0001",
+            "--state-path",
+            str(cli_state_path),
+            "--field",
+            "decision_id",
+        ]
+    )
 
 
 def main() -> None:

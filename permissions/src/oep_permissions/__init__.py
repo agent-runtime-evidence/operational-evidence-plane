@@ -9,6 +9,7 @@ from oep_permissions.paths import (
     POLICY_TEST_PATH,
     SCHEMA_PATH,
 )
+from oep_permissions.replay import ReplayError, ReplayRecord, reconstruct_decision
 
 __all__ = [
     "DENIED_EXAMPLE_PATH",
@@ -18,4 +19,7 @@ __all__ = [
     "POLICY_PATH",
     "POLICY_TEST_PATH",
     "SCHEMA_PATH",
+    "ReplayError",
+    "ReplayRecord",
+    "reconstruct_decision",
 ]

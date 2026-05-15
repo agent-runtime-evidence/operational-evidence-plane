@@ -4,7 +4,40 @@ All notable changes to this reference implementation are documented here.
 
 ## [Unreleased]
 
-No changes yet.
+### Added
+
+- Added v0.2 replayable permission trace fields to the OPA-backed tool
+  permission packet schema (`scoped_credential_lifetime`,
+  `approval_capture`, `policy_bundle_version`,
+  `release_manifest_version`, `model_alias`, `resolved_model_version`,
+  `model_provider`). Fields are additive and optional so v0.1 records
+  continue to validate; the deterministic code-review demo populates
+  them.
+- Added the `oep` console script with a `replay <decision_id>`
+  subcommand. The subcommand is a read-only reader over the existing
+  SQLite replay store and reconstructs the recorded permission trace
+  for a decision id (the `pder_*` packet identifier). It does not
+  make live model or vendor API calls.
+- Added an illustrative Model Context Protocol (MCP) adapter under
+  `integrations/mcp/` with a mapping reference, synthetic envelope,
+  and standalone projection script that translates an MCP
+  `tools/call` envelope into an OEP permission packet.
+- Added a README record-keeping reference table mapping OEP record
+  fields to EU AI Act articles (Regulation (EU) 2024/1689) and
+  NIST AI RMF 1.0 functions (GOVERN / MAP / MEASURE / MANAGE). The
+  table is documentation and education only; it does not create a
+  compliance or audit claim.
+- Added `make validate-mcp` and `make validate-replay-cli` targets,
+  wired into `make verify`.
+
+### Notes
+
+- This release does not change the v0.1.x boundary statements. It is
+  still not production-ready, not standardization, not a compliance
+  proof, and not a vendor replacement.
+- v0.1 records remain valid against the extended permission packet
+  schema. The new fields are nullable / omittable for backward
+  compatibility.
 
 ## v0.1.0 - 2026-05-06
 

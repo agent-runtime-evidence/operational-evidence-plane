@@ -38,6 +38,7 @@ VERIFY_SCRIPTS = (
     ("traces/scripts/check_operational_trace.py", "Trace bundle checks passed"),
     ("playbooks/scripts/check_reconstruction_packet.py", "Reconstruction packet checks passed"),
     ("translations/bedrock/scripts/check_bedrock_translation.py", "Bedrock translation checks passed"),
+    ("integrations/mcp/scripts/to_oep_permission.py", "MCP -> OEP permission packet projection checks passed"),
     ("scripts/check_public_docs.py", "Public documentation checks passed"),
 )
 
@@ -353,6 +354,164 @@ def test_package_build_rejects_packaged_resource_drift(
             (PackagedArtifact("canonical.txt", "workspace", "oep_demo/resources/fixtures/fixture.txt"),),
             repo_root=tmp_path,
         )
+
+
+def test_update_permission_digests_detects_drift(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        (ROOT / "manifest" / "examples" / "code_review_agent_release.v0.json").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+    packet = load_json_object(ROOT / "permissions" / "examples" / "code_review_tool_permission.v0.json")
+    packet["release_manifest_version"] = "sha256:" + ("0" * 64)
+    packet_path = tmp_path / "code_review_tool_permission.v0.json"
+    packet_path.write_text(json.dumps(packet), encoding="utf-8")
+
+    module = load_script_module(
+        "permissions/scripts/update_permission_digests.py",
+        "update_permission_digests_test",
+    )
+    assert module.update_permission_digests(manifest_path, (packet_path,), check=True) is False
+    assert module.update_permission_digests(manifest_path, (packet_path,), check=False) is True
+    refreshed = json.loads(packet_path.read_text(encoding="utf-8"))
+    assert refreshed["release_manifest_version"].startswith("sha256:")
+    assert refreshed["release_manifest_version"] != "sha256:" + ("0" * 64)
+
+
+def test_replay_cli_reconstructs_recorded_decision(tmp_path: Path) -> None:
+    from oep_permissions import ReplayError, reconstruct_decision
+
+    from oep_verify.cli import main as cli_main
+
+    state_path = tmp_path / "code_review_agent.sqlite"
+    run_demo(state_path)
+
+    record = reconstruct_decision(state_path, "pder_code_review_read_diff_0001")
+    assert record.decision_id == "pder_code_review_read_diff_0001"
+    assert record.tool_call_id == "tool_read_diff_0001"
+    assert record.model_alias == "deterministic-mock-reviewer"
+    assert record.model_provider == "operational-evidence-plane-reference"
+    assert record.policy_bundle_version is not None
+    assert record.policy_bundle_version.startswith("sha256:")
+    assert record.release_manifest_version is not None
+    assert record.release_manifest_version.startswith("sha256:")
+    assert record.scoped_credential_lifetime == "PT15M"
+    assert record.approval_capture is None
+
+    with pytest.raises(ReplayError, match="no recorded decision"):
+        reconstruct_decision(state_path, "pder_does_not_exist")
+
+    missing_state = tmp_path / "missing.sqlite"
+    with pytest.raises(ReplayError, match="replay state not found"):
+        reconstruct_decision(missing_state, "pder_code_review_read_diff_0001")
+
+    denied_event = load_json_object(ROOT / "events" / "examples" / "code_review_agent_denied_step.v0.json")
+    connection = sqlite3.connect(state_path)
+    try:
+        connection.execute("PRAGMA foreign_keys = ON")
+        connection.execute(
+            "INSERT INTO traces (trace_id, release_manifest_id, status, payload_json) VALUES (?, ?, ?, ?)",
+            (denied_event["trace_id"], denied_event["release_manifest_id"], "partial", "{}"),
+        )
+        connection.execute(
+            """
+            INSERT INTO events (event_id, trace_id, span_id, release_manifest_id,
+                                tool_call_id, permission_packet_ref, payload_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                denied_event["event_id"],
+                denied_event["trace_id"],
+                denied_event["span_id"],
+                denied_event["release_manifest_id"],
+                denied_event["tool_call_id"],
+                denied_event["permission_packet_ref"],
+                json.dumps(denied_event),
+            ),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    with pytest.raises(ReplayError, match="denied decisions do not generate SQLite replay state"):
+        reconstruct_decision(state_path, denied_event["permission_packet_ref"])
+
+    tampered_state_path = tmp_path / "tampered.sqlite"
+    run_demo(tampered_state_path)
+    tampered = sqlite3.connect(tampered_state_path)
+    try:
+        tampered.execute(
+            "UPDATE permissions SET payload_json = ? WHERE packet_id = ?",
+            (
+                json.dumps({"not_a_valid_packet": True}),
+                "pder_code_review_read_diff_0001",
+            ),
+        )
+        tampered.commit()
+    finally:
+        tampered.close()
+    with pytest.raises(ReplayError, match="failed schema validation"):
+        reconstruct_decision(tampered_state_path, "pder_code_review_read_diff_0001")
+
+    cli_main(
+        [
+            "replay",
+            "pder_code_review_read_diff_0001",
+            "--state-path",
+            str(state_path),
+            "--field",
+            "decision_id",
+        ]
+    )
+
+    with pytest.raises(SystemExit, match="unknown replay record field"):
+        cli_main(
+            [
+                "replay",
+                "pder_code_review_read_diff_0001",
+                "--state-path",
+                str(state_path),
+                "--field",
+                "not_a_field",
+            ]
+        )
+
+
+def test_mcp_adapter_rejects_canonical_drift(tmp_path: Path) -> None:
+    module = load_script_module(
+        "integrations/mcp/scripts/to_oep_permission.py",
+        "mcp_projection_test",
+    )
+    mcp_event = json.loads(
+        (ROOT / "integrations" / "mcp" / "examples" / "code_review_mcp_tool_call.v0.json").read_text(encoding="utf-8")
+    )
+    drifted = dict(mcp_event)
+    drifted["session"] = {**mcp_event["session"], "policy_bundle_version": "sha256:" + ("0" * 64)}
+    drifted_event_path = tmp_path / "drifted_mcp.json"
+    drifted_event_path.write_text(json.dumps(drifted), encoding="utf-8")
+
+    canonical_path = ROOT / "permissions" / "examples" / "code_review_tool_permission.v0.json"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "integrations" / "mcp" / "scripts" / "to_oep_permission.py"),
+            "--mcp-event",
+            str(drifted_event_path),
+            "--compare-with",
+            str(canonical_path),
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert "MCP -> OEP projection drift" in result.stderr
+
+    projected = module.project_to_oep_permission(mcp_event)
+    canonical = json.loads(canonical_path.read_text(encoding="utf-8"))
+    assert projected == canonical
 
 
 def test_replay_schema_enforces_foreign_keys(tmp_path: Path) -> None:
