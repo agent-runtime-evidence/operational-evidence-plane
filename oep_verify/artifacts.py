@@ -241,6 +241,8 @@ SOURCE_DISTRIBUTION_FILES = tuple(
             "playbooks/src/oep_playbooks/paths.py",
             "playbooks/src/oep_playbooks/py.typed",
             "pyproject.toml",
+            "replay/counterfactual_replay.v0.schema.json",
+            "replay/scripts/check_counterfactual_replay_schema.py",
             "scripts/check_public_docs.py",
             "scripts/check_package_build.py",
             "tests/test_verify_scripts.py",

@@ -1,0 +1,241 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://operational-evidence-plane.local/schema/counterfactual_replay.v0.schema.json",
+  "title": "Operational Evidence Plane Counterfactual Replay v0",
+  "description": "Counterfactual policy replay output for comparing an original recorded decision with the decision re-derived under a substituted policy bundle. This schema records the replay diff only; it does not define a production-grade replay engine, compliance certification, or legal/regulatory adequacy claim.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "decision_id",
+    "replay_mode",
+    "original",
+    "counterfactual",
+    "diff",
+    "replay_metadata",
+    "claim_boundary"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "oep.counterfactual_replay.v0"
+    },
+    "decision_id": {
+      "type": "string",
+      "pattern": "^pder_[a-z0-9][a-z0-9_-]*$"
+    },
+    "replay_mode": {
+      "type": "string",
+      "const": "counterfactual"
+    },
+    "original": {
+      "$ref": "#/$defs/decision_snapshot"
+    },
+    "counterfactual": {
+      "$ref": "#/$defs/decision_snapshot"
+    },
+    "diff": {
+      "$ref": "#/$defs/decision_diff"
+    },
+    "replay_metadata": {
+      "$ref": "#/$defs/replay_metadata"
+    },
+    "claim_boundary": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "decision_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_bundle_version",
+        "decision",
+        "rationale",
+        "matched_rules"
+      ],
+      "properties": {
+        "policy_bundle_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decision": {
+          "type": "string",
+          "enum": ["allow", "deny"]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "matched_rules": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "decision_code": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        }
+      }
+    },
+    "decision_diff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_changed",
+        "rationale_changed",
+        "rule_set_delta"
+      ],
+      "properties": {
+        "decision_changed": {"type": "boolean"},
+        "rationale_changed": {"type": "boolean"},
+        "rule_set_delta": {
+          "$ref": "#/$defs/rule_set_delta"
+        },
+        "workflow_delta": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/workflow_delta"}
+          ]
+        },
+        "budget_delta": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/budget_delta"}
+          ]
+        },
+        "approval_delta": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/approval_delta"}
+          ]
+        }
+      }
+    },
+    "rule_set_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["added", "removed"],
+      "properties": {
+        "added": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "removed": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "unchanged": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        }
+      }
+    },
+    "workflow_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status_changed"],
+      "properties": {
+        "status_changed": {"type": "boolean"},
+        "original_status": {"type": "string", "minLength": 1},
+        "counterfactual_status": {"type": "string", "minLength": 1},
+        "first_divergent_step": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "integer", "minimum": 1}
+          ]
+        },
+        "termination_reason": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        }
+      }
+    },
+    "budget_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["budget_cap_active", "cost_trace_changed"],
+      "properties": {
+        "budget_cap_active": {"type": "boolean"},
+        "cost_trace_changed": {"type": "boolean"},
+        "original_total_usd": {"type": "number", "minimum": 0},
+        "counterfactual_total_usd": {"type": "number", "minimum": 0},
+        "termination_step": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "integer", "minimum": 1}
+          ]
+        },
+        "termination_code": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        }
+      }
+    },
+    "approval_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approval_requirements_changed"],
+      "properties": {
+        "approval_requirements_changed": {"type": "boolean"},
+        "added_approval_steps": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "removed_approval_steps": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "counterfactual_approval_capture": {
+          "oneOf": [
+            {"type": "null"},
+            {
+              "type": "object",
+              "additionalProperties": true
+            }
+          ]
+        }
+      }
+    },
+    "replay_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "oep_replay_mode",
+        "nd_builtin_cache_entries_used",
+        "replay_timestamp_utc"
+      ],
+      "properties": {
+        "oep_replay_mode": {
+          "type": "string",
+          "const": "counterfactual"
+        },
+        "nd_builtin_cache_entries_used": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "replay_timestamp_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "determinism_exclusions": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

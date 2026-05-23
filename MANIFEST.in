@@ -15,6 +15,7 @@ recursive-include oep_verify *.py py.typed
 recursive-include manifest *.py *.json *.toml py.typed
 recursive-include events *.py *.json *.toml py.typed
 recursive-include permissions *.py *.json *.rego *.toml py.typed
+recursive-include replay *.py *.json
 recursive-include traces *.py *.json *.toml py.typed
 recursive-include playbooks *.py *.json *.md *.toml py.typed
 recursive-include demo *.py *.patch *.md *.toml py.typed .gitkeep

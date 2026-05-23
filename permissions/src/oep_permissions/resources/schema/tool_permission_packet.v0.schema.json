@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://operational-evidence-plane.local/schema/tool_permission_packet.v0.schema.json",
   "title": "Operational Evidence Plane Tool Permission Packet v0",
-  "description": "Permission decision evidence packet for joining an agent tool call to release manifest, runtime event, trace, and OPA policy decision evidence. The v0.2 release extends this packet with optional replayable permission trace fields (scoped_credential_lifetime, approval_capture, policy_bundle_version, release_manifest_version, model_alias, resolved_model_version, model_provider). These fields are additive and remain optional so v0.1 records continue to validate; v0.2 examples populate them.",
+  "description": "Permission decision evidence packet for joining an agent tool call to release manifest, runtime event, trace, and OPA policy decision evidence. The v0.2 release extends this packet with optional replayable permission trace fields (scoped_credential_lifetime, approval_capture, policy_bundle_version, release_manifest_version, model_alias, resolved_model_version, model_provider). The v0.3 release adds optional nd_builtin_cache capture for OPA-style non-deterministic builtin replay. These fields are additive and remain optional so v0.1 records continue to validate; v0.2 and later examples may populate them.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -140,6 +140,12 @@
         }
       ]
     },
+    "nd_builtin_cache": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "#/$defs/nd_builtin_cache"}
+      ]
+    },
     "links": {
       "$ref": "#/$defs/links"
     },
@@ -230,6 +236,15 @@
         },
         "captured_at": {"type": "string", "format": "date-time"},
         "approval_type": {"type": "string", "minLength": 1}
+      }
+    },
+    "nd_builtin_cache": {
+      "type": "object",
+      "description": "OPA non-deterministic builtin cache captured with the original decision record for deterministic replay/debugging. Keys are builtin names such as time.now_ns or http.send; values preserve OPA's input/output mapping payloads without OEP-specific rewriting.",
+      "propertyNames": {"type": "string", "minLength": 1},
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": true
       }
     },
     "links": {

@@ -1,6 +1,6 @@
 PYTHON ?= python3
 OPA ?= opa
-PACKAGES := manifest events permissions traces playbooks demo oep_verify
+PACKAGES := manifest events permissions traces playbooks demo replay oep_verify
 POLICY_TEST_FILES := $(wildcard permissions/policy/*.rego)
 DEMO_STATE := demo/state/code_review_agent.sqlite
 COVERAGE_DEMO_STATE ?= demo/state/code_review_agent.coverage.sqlite
@@ -10,7 +10,7 @@ DTR_INTEGRATION_DIR := integrations/decision-trace-reconstructor
 DTR_SCENARIO ?= code_review_agent
 DTR_SCENARIOS ?= $(shell $(PYTHON) -c "from oep_verify.scenarios import scenario_names; print(' '.join(scenario_names()))")
 
-.PHONY: verify compile validate-manifest validate-events validate-permissions validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-replay-cli check-docs check-permission-digests test test-policy coverage lint typecheck build-check update-digests check-digests clean-state regen-dtr-jsonl check-dtr-jsonl validate-dtr
+.PHONY: verify compile validate-manifest validate-events validate-permissions validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-replay-cli validate-counterfactual-schema check-docs check-permission-digests test test-policy coverage lint typecheck build-check update-digests check-digests clean-state regen-dtr-jsonl check-dtr-jsonl validate-dtr
 
 verify: compile validate-manifest validate-events test-policy validate-permissions check-permission-digests validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-replay-cli check-dtr-jsonl check-docs build-check
 
@@ -51,6 +51,9 @@ validate-mcp:
 validate-replay-cli:
 	$(PYTHON) -m oep_verify.cli replay pder_code_review_read_diff_0001 --field decision_id > /dev/null
 	$(PYTHON) -m oep_verify.cli replay pder_code_review_read_diff_0001 --field policy_bundle_version > /dev/null
+
+validate-counterfactual-schema:
+	$(PYTHON) replay/scripts/check_counterfactual_replay_schema.py
 
 check-docs:
 	$(PYTHON) scripts/check_public_docs.py

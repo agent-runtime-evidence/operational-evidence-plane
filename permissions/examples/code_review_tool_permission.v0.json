@@ -44,7 +44,7 @@
   "scoped_credential_lifetime": "PT15M",
   "approval_capture": null,
   "policy_bundle_version": "sha256:e0d5563e9e046960f5435ab1e00f26df8925e16ca7a207ee37df65b7151bcb27",
-  "release_manifest_version": "sha256:61ae8d59b91cabd79dfa4f2e4715b9aa4ac09604443f33cac3b7174efa168e95",
+  "release_manifest_version": "sha256:d9a98ff584ded5701785bc0713ed7fc282f5e3d3adcd8605015e5a21b0f05ba1",
   "model_alias": "deterministic-mock-reviewer",
   "resolved_model_version": "0.1.0",
   "model_provider": "operational-evidence-plane-reference",
