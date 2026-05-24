@@ -19,12 +19,22 @@ dist/
 site/
 
 *.sqlite
+*.sqlite-shm
+*.sqlite-wal
 *.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
 *.db
+*.db-shm
+*.db-wal
+
+demo/counterfactual/*.json
+demo/counterfactual/*.jsonl
+demo/counterfactual/**/*.json
+demo/counterfactual/**/*.jsonl
 
 # Decision Trace Reconstructor integration: generated intermediates.
 # `*.jsonl` and `*.expected_feasibility.json` are committed; only the
 # fragments manifest and per-run report directory are regenerable.
 integrations/decision-trace-reconstructor/*.fragments.json
 integrations/decision-trace-reconstructor/*.report/
-

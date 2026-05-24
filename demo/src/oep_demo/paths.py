@@ -1,9 +1,11 @@
 """Filesystem helpers for the deterministic demo package."""
 
+import atexit
 import os
 from contextlib import ExitStack
 from importlib.resources import as_file, files
 from pathlib import Path
+from threading import Lock
 
 from oep_events.paths import EXAMPLE_PATH as EVENT_PATH
 from oep_manifest.paths import EXAMPLE_PATH as MANIFEST_PATH
@@ -12,11 +14,19 @@ from oep_traces.paths import EVAL_EXAMPLE_PATH as EVAL_PATH
 from oep_traces.paths import TRACE_EXAMPLE_PATH as TRACE_PATH
 
 _RESOURCE_STACK = ExitStack()
+atexit.register(_RESOURCE_STACK.close)
 _RESOURCE_ROOT = files("oep_demo").joinpath("resources")
+_RESOURCE_LOCK = Lock()
+_RESOURCE_PATHS: dict[tuple[str, ...], Path] = {}
 
 
 def _resource_path(*parts: str) -> Path:
-    return _RESOURCE_STACK.enter_context(as_file(_RESOURCE_ROOT.joinpath(*parts)))
+    with _RESOURCE_LOCK:
+        cached = _RESOURCE_PATHS.get(parts)
+        if cached is None:
+            cached = _RESOURCE_STACK.enter_context(as_file(_RESOURCE_ROOT.joinpath(*parts)))
+            _RESOURCE_PATHS[parts] = cached
+        return cached
 
 
 REPO_ROOT = Path.cwd()

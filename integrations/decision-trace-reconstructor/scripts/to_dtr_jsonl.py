@@ -10,8 +10,9 @@ where each line is one record carrying a `kind` field that the mapping
 config (`mapping.v0.yaml`, shipped alongside this script) translates to a
 DTR fragment kind.
 
-Output JSONL records are sorted by timestamp so the reconstructor's
-temporal-ordering stage receives them in chronological order.
+Output JSONL records are sorted by timestamp, kind, and id so the
+reconstructor's temporal-ordering stage receives deterministic input
+even when records share the same timestamp.
 
 Usage:
     python integrations/decision-trace-reconstructor/scripts/to_dtr_jsonl.py \\
@@ -23,24 +24,26 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from oep_verify.scenarios import get_scenario, scenario_names
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+JsonRecord = dict[str, Any]
 
 
 def iso_to_epoch(iso_str: str) -> float:
     """Convert an ISO 8601 timestamp string to Unix epoch seconds (UTC)."""
-    text = iso_str.replace("Z", "+00:00") if iso_str.endswith("Z") else iso_str
-    parsed = datetime.fromisoformat(text)
+    parsed = datetime.fromisoformat(iso_str)
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=UTC)
-    return parsed.timestamp()
+    return parsed.astimezone(UTC).timestamp()
 
 
-def from_release_manifest(manifest: dict) -> dict:
+def from_release_manifest(manifest: JsonRecord) -> JsonRecord:
     """Emit a config_snapshot record from an OEP release manifest."""
     return {
         "id": manifest["manifest_id"],
@@ -56,7 +59,7 @@ def from_release_manifest(manifest: dict) -> dict:
     }
 
 
-def from_agent_step_event(event: dict) -> tuple[dict, dict]:
+def from_agent_step_event(event: JsonRecord) -> tuple[JsonRecord, JsonRecord]:
     """Emit (prompt, tool_call) pair from an OEP agent-step event.
 
     The prompt record is synthesised at event_time minus a small offset so
@@ -97,7 +100,7 @@ def from_agent_step_event(event: dict) -> tuple[dict, dict]:
     return prompt, tool
 
 
-def from_permission_packet(packet: dict) -> dict:
+def from_permission_packet(packet: JsonRecord) -> JsonRecord:
     """Emit a policy_snapshot record from an OEP tool permission packet."""
     return {
         "id": packet["packet_id"],
@@ -116,7 +119,7 @@ def from_permission_packet(packet: dict) -> dict:
     }
 
 
-def from_replay_handle(event: dict) -> dict | None:
+def from_replay_handle(event: JsonRecord) -> JsonRecord | None:
     """Emit a state_mutation record from the OEP event's replay_handle field."""
     handle = event["replay_handle"]
     if handle is None:
@@ -137,7 +140,7 @@ def from_replay_handle(event: dict) -> dict | None:
     }
 
 
-def from_eval_result(eval_result: dict, trace_bundle: dict) -> dict:
+def from_eval_result(eval_result: JsonRecord, trace_bundle: JsonRecord) -> JsonRecord:
     """Emit a final agent_message record from the OEP eval result.
 
     Eval timestamp is derived from the trace bundle's ended_at, since the
@@ -160,15 +163,37 @@ def from_eval_result(eval_result: dict, trace_bundle: dict) -> dict:
     }
 
 
-def build_jsonl(scenario: str, repo_root: Path) -> list[dict]:
+def sort_jsonl_records(records: Sequence[JsonRecord]) -> list[JsonRecord]:
+    """Return DTR JSONL records in deterministic temporal order."""
+
+    return sorted(records, key=_jsonl_sort_key)
+
+
+def _jsonl_sort_key(record: JsonRecord) -> tuple[float, str, str]:
+    timestamp = record.get("ts")
+    kind = record.get("kind")
+    record_id = record.get("id")
+    if not isinstance(timestamp, int | float):
+        raise ValueError("DTR JSONL record must contain numeric ts")
+    if not isinstance(kind, str):
+        raise ValueError("DTR JSONL record must contain string kind")
+    if not isinstance(record_id, str):
+        raise ValueError("DTR JSONL record must contain string id")
+    return (float(timestamp), kind, record_id)
+
+
+def build_jsonl(scenario: str, repo_root: Path) -> list[JsonRecord]:
     """Read OEP scenario artefacts and return the sorted JSONL record list."""
     try:
         files = get_scenario(scenario).dtr_files
     except KeyError as exc:
         raise SystemExit(str(exc)) from exc
 
-    def _load(rel: str) -> dict:
-        return json.loads((repo_root / rel).read_text(encoding="utf-8"))
+    def _load(rel: str) -> JsonRecord:
+        data = json.loads((repo_root / rel).read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            raise ValueError(f"{rel} must contain a JSON object")
+        return data
 
     manifest = _load(files["release_manifest"])
     event = _load(files["agent_step"])
@@ -187,8 +212,7 @@ def build_jsonl(scenario: str, repo_root: Path) -> list[dict]:
     replay_record = from_replay_handle(event)
     if replay_record is not None:
         records.append(replay_record)
-    records.sort(key=lambda r: r["ts"])
-    return records
+    return sort_jsonl_records(records)
 
 
 def main() -> None:

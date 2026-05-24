@@ -49,6 +49,8 @@ def project_to_oep_permission(mcp_event: dict[str, Any]) -> dict[str, Any]:
     arguments = params.get("arguments")
     if isinstance(arguments, dict):
         input_ref = arguments.get("uri") or arguments.get("input_ref")
+        if input_ref is None:
+            input_ref = json.dumps(arguments, sort_keys=True, separators=(",", ":"))
     else:
         input_ref = arguments
 
@@ -90,7 +92,7 @@ def project_to_oep_permission(mcp_event: dict[str, Any]) -> dict[str, Any]:
 
 
 def _stable_json(data: dict[str, Any]) -> str:
-    return json.dumps(data, indent=2) + "\n"
+    return json.dumps(data, indent=2, sort_keys=True) + "\n"
 
 
 def _load_json(path: Path) -> dict[str, Any]:

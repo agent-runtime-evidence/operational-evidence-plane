@@ -1,57 +1,57 @@
 {
-  "schema_version": "oep.tool_permission_packet.v0",
-  "packet_id": "pder_code_review_write_diff_0001",
-  "decision_time": "2026-05-04T00:00:03Z",
-  "release_manifest_id": "rmf_code_review_agent_2026_05_04_v0",
-  "event_id": "evt_code_review_agent_denied_0001",
-  "tool_call_id": "tool_write_diff_0001",
-  "trace_id": "33333333333333333333333333333333",
-  "span_id": "4444444444444444",
   "actor": {
-    "type": "agent",
+    "display_name": "code-review-agent-reference-demo",
     "id": "agent_code_review_reference_demo",
-    "display_name": "code-review-agent-reference-demo"
+    "type": "agent"
   },
-  "requested_action": {
-    "action_type": "write_diff",
-    "name": "attempt synthetic repository diff write",
-    "input_ref": "demo/fixtures/diff_synthetic_001.patch"
-  },
-  "tool": {
-    "name": "write_diff",
-    "version": "0.1.0",
-    "operation": "write"
-  },
-  "resource": {
-    "type": "repository_diff",
-    "id": "diff_synthetic_001",
-    "uri": "demo/fixtures/diff_synthetic_001.patch",
-    "mutable": true
-  },
-  "policy": {
-    "engine": "opa",
-    "package": "data.oep.permissions",
-    "policy_id": "opa-tool-permission-policy",
-    "policy_version": "0.1.0",
-    "policy_uri": "permissions/policy/tool_permissions.rego"
-  },
+  "approval_capture": null,
+  "claim_boundary": "This packet records one denied OPA-backed permission decision for a synthetic reference demo. The v0.2 fields (scoped_credential_lifetime, approval_capture, policy_bundle_version, release_manifest_version, model_alias, resolved_model_version, model_provider) are record-keeping additions for replayability; they do not create a compliance, audit, or model-quality claim.",
   "decision": {
     "allow": false,
-    "reason": "tool call denied by default reference policy",
     "matched_rule": "deny_by_default",
-    "opa_result_ref": "opa eval --data permissions/policy/tool_permissions.rego --input permissions/policy/input/code_review_write_diff.json data.oep.permissions.decision"
+    "opa_result_ref": "opa eval --data permissions/policy/tool_permissions.rego --input permissions/policy/input/code_review_write_diff.json data.oep.permissions.decision",
+    "reason": "tool call denied by default reference policy"
   },
-  "scoped_credential_lifetime": "PT15M",
-  "approval_capture": null,
-  "policy_bundle_version": "sha256:e0d5563e9e046960f5435ab1e00f26df8925e16ca7a207ee37df65b7151bcb27",
-  "release_manifest_version": "sha256:d9a98ff584ded5701785bc0713ed7fc282f5e3d3adcd8605015e5a21b0f05ba1",
-  "model_alias": "deterministic-mock-reviewer",
-  "resolved_model_version": "0.1.0",
-  "model_provider": "operational-evidence-plane-reference",
+  "decision_time": "2026-05-04T00:00:03Z",
+  "event_id": "evt_code_review_agent_denied_0001",
   "links": {
     "event_ref": "events/examples/code_review_agent_denied_step.v0.json",
     "release_manifest_ref": "manifest/examples/code_review_agent_release.v0.json",
     "trace_ref": "traces/examples/code_review_agent_denied_trace.v0.json"
   },
-  "claim_boundary": "This packet records one denied OPA-backed permission decision for a synthetic reference demo. The v0.2 fields (scoped_credential_lifetime, approval_capture, policy_bundle_version, release_manifest_version, model_alias, resolved_model_version, model_provider) are record-keeping additions for replayability; they do not create a compliance, audit, or model-quality claim."
+  "model_alias": "deterministic-mock-reviewer",
+  "model_provider": "operational-evidence-plane-reference",
+  "packet_id": "pder_code_review_write_diff_0001",
+  "policy": {
+    "engine": "opa",
+    "package": "data.oep.permissions",
+    "policy_id": "opa-tool-permission-policy",
+    "policy_uri": "permissions/policy/tool_permissions.rego",
+    "policy_version": "0.1.0"
+  },
+  "policy_bundle_version": "sha256:e0d5563e9e046960f5435ab1e00f26df8925e16ca7a207ee37df65b7151bcb27",
+  "release_manifest_id": "rmf_code_review_agent_2026_05_04_v0",
+  "release_manifest_version": "sha256:4b08d35ee3428bd11ab87544bb7b192cd723430bfe0b255cc7cfa838a7cf74c4",
+  "requested_action": {
+    "action_type": "write_diff",
+    "input_ref": "demo/fixtures/diff_synthetic_001.patch",
+    "name": "attempt synthetic repository diff write"
+  },
+  "resolved_model_version": "0.1.0",
+  "resource": {
+    "id": "diff_synthetic_001",
+    "mutable": true,
+    "type": "repository_diff",
+    "uri": "demo/fixtures/diff_synthetic_001.patch"
+  },
+  "schema_version": "oep.tool_permission_packet.v0",
+  "scoped_credential_lifetime": "PT15M",
+  "span_id": "4444444444444444",
+  "tool": {
+    "name": "write_diff",
+    "operation": "write",
+    "version": "0.1.0"
+  },
+  "tool_call_id": "tool_write_diff_0001",
+  "trace_id": "33333333333333333333333333333333"
 }

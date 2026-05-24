@@ -1,18 +1,26 @@
+ifneq ($(wildcard .venv/bin/python),)
+PYTHON ?= .venv/bin/python
+else
 PYTHON ?= python3
+endif
 OPA ?= opa
 PACKAGES := manifest events permissions traces playbooks demo replay oep_verify
 POLICY_TEST_FILES := $(wildcard permissions/policy/*.rego)
+COUNTERFACTUAL_POLICY_FILES := $(filter-out %_test.rego,$(wildcard permissions/policy/counterfactual/*.rego))
 DEMO_STATE := demo/state/code_review_agent.sqlite
 COVERAGE_DEMO_STATE ?= demo/state/code_review_agent.coverage.sqlite
 COVERAGE_FAIL_UNDER ?= 95
-COVERAGE_SOURCE := demo,events,integrations,manifest,permissions,playbooks,oep_verify,traces,translations
+COVERAGE_SOURCE := demo,events,integrations,manifest,permissions,playbooks,oep_verify,replay,traces,translations
 DTR_INTEGRATION_DIR := integrations/decision-trace-reconstructor
 DTR_SCENARIO ?= code_review_agent
 DTR_SCENARIOS ?= $(shell $(PYTHON) -c "from oep_verify.scenarios import scenario_names; print(' '.join(scenario_names()))")
 
-.PHONY: verify compile validate-manifest validate-events validate-permissions validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-replay-cli validate-counterfactual-schema check-docs check-permission-digests test test-policy coverage lint typecheck build-check update-digests check-digests clean-state regen-dtr-jsonl check-dtr-jsonl validate-dtr
+.PHONY: verify check-opa-dependency compile validate-manifest validate-events validate-permissions validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-replay-cli validate-counterfactual-replay check-replay-determinism validate-counterfactual-schema check-docs check-permission-digests test test-policy coverage lint typecheck build-check sync-resources update-digests check-digests clean-state regen-dtr-jsonl check-dtr-jsonl validate-dtr
 
-verify: compile validate-manifest validate-events test-policy validate-permissions check-permission-digests validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-replay-cli check-dtr-jsonl check-docs build-check
+verify: check-opa-dependency compile validate-manifest validate-events test-policy validate-permissions validate-counterfactual-schema check-permission-digests validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-replay-cli validate-counterfactual-replay check-replay-determinism check-dtr-jsonl check-docs build-check
+
+check-opa-dependency:
+	@command -v $(OPA) > /dev/null 2>&1 || (echo "Error: '$(OPA)' CLI is not installed or not on PATH. Install OPA CLI 1.x or set OPA=/path/to/opa." >&2; exit 1)
 
 compile:
 	$(PYTHON) -m compileall -q $(PACKAGES)
@@ -49,8 +57,15 @@ validate-mcp:
 	$(PYTHON) integrations/mcp/scripts/to_oep_permission.py
 
 validate-replay-cli:
-	$(PYTHON) -m oep_verify.cli replay pder_code_review_read_diff_0001 --field decision_id > /dev/null
-	$(PYTHON) -m oep_verify.cli replay pder_code_review_read_diff_0001 --field policy_bundle_version > /dev/null
+	OEP_REPLAY_MODE=read-only $(PYTHON) -m oep_verify.cli replay pder_code_review_read_diff_0001 --field decision_id > /dev/null
+	OEP_REPLAY_MODE=read-only $(PYTHON) -m oep_verify.cli replay pder_code_review_read_diff_0001 --field policy_bundle_version > /dev/null
+	OEP_REPLAY_MODE=counterfactual $(PYTHON) -m oep_verify.cli replay pder_code_review_read_diff_0001 --counterfactual --policy-bundle permissions/policy/tool_permissions.rego --output-format json --replay-timestamp-utc 2026-05-23T00:00:00Z > /dev/null
+
+validate-counterfactual-replay:
+	$(PYTHON) replay/scripts/check_counterfactual_replay.py --runs 2
+
+check-replay-determinism:
+	$(PYTHON) replay/scripts/check_counterfactual_replay.py --runs 3 --temp-only --include-dtr
 
 validate-counterfactual-schema:
 	$(PYTHON) replay/scripts/check_counterfactual_replay_schema.py
@@ -61,17 +76,30 @@ check-docs:
 test:
 	$(PYTHON) -m pytest -q
 
-test-policy:
+test-policy: check-opa-dependency
 	$(OPA) test $(POLICY_TEST_FILES)
+	@test -n "$(COUNTERFACTUAL_POLICY_FILES)" || (echo "No counterfactual policy files found."; exit 1)
+	@set -e; \
+	for policy_file in $(COUNTERFACTUAL_POLICY_FILES); do \
+		test_file="$${policy_file%.rego}_test.rego"; \
+		if [ ! -f "$$test_file" ]; then \
+			echo "Missing counterfactual policy test file: $$test_file"; \
+			exit 1; \
+		fi; \
+		$(OPA) test "$$policy_file" "$$test_file"; \
+	done
 
 lint:
 	$(PYTHON) -m ruff check .
 
 typecheck:
-	$(PYTHON) -m mypy manifest events permissions traces playbooks demo oep_verify tests translations integrations scripts
+	$(PYTHON) -m mypy manifest events permissions traces playbooks demo oep_verify replay tests translations integrations scripts
 
 build-check:
 	$(PYTHON) scripts/check_package_build.py
+
+sync-resources:
+	$(PYTHON) scripts/sync_packaged_resources.py
 
 update-digests:
 	$(PYTHON) manifest/scripts/update_manifest_digests.py
@@ -84,7 +112,7 @@ check-digests:
 coverage:
 	rm -f $(COVERAGE_DEMO_STATE)
 	$(PYTHON) -m coverage erase
-	$(OPA) test $(POLICY_TEST_FILES)
+	$(MAKE) test-policy OPA=$(OPA)
 	$(PYTHON) -m coverage run --source="$(COVERAGE_SOURCE)" manifest/scripts/update_manifest_digests.py --check
 	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" permissions/scripts/update_permission_digests.py --check
 	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" manifest/scripts/check_release_manifest.py
@@ -97,7 +125,10 @@ coverage:
 	OEP_DEMO_STATE_PATH="$(COVERAGE_DEMO_STATE)" $(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" playbooks/scripts/check_reconstruction_packet.py
 	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" translations/bedrock/scripts/check_bedrock_translation.py
 	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" integrations/mcp/scripts/to_oep_permission.py
-	OEP_DEMO_STATE_PATH="$(COVERAGE_DEMO_STATE)" $(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" -m oep_verify.cli replay pder_code_review_read_diff_0001 --field decision_id > /dev/null
+	OEP_DEMO_STATE_PATH="$(COVERAGE_DEMO_STATE)" OEP_REPLAY_MODE=read-only $(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" -m oep_verify.cli replay pder_code_review_read_diff_0001 --field decision_id > /dev/null
+	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" replay/scripts/check_counterfactual_replay_schema.py
+	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" replay/scripts/check_counterfactual_replay.py --runs 2
+	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" replay/scripts/check_counterfactual_replay.py --runs 3 --temp-only --include-dtr
 	$(PYTHON) scripts/check_public_docs.py
 	@set -e; \
 	tmp_dir=$$(mktemp -d); \
@@ -114,7 +145,16 @@ coverage:
 	$(PYTHON) -m coverage report --skip-empty --fail-under=$(COVERAGE_FAIL_UNDER)
 
 clean-state:
-	rm -f $(DEMO_STATE)
+	rm -f demo/state/*.sqlite demo/state/*.sqlite-wal demo/state/*.sqlite-shm demo/state/*.sqlite3 demo/state/*.sqlite3-wal demo/state/*.sqlite3-shm demo/state/*.db demo/state/*.db-wal demo/state/*.db-shm
+	@if [ -d demo/counterfactual ]; then \
+		find demo/counterfactual -type f \( \
+			-name '*.sqlite' -o -name '*.sqlite-wal' -o -name '*.sqlite-shm' -o \
+			-name '*.sqlite3' -o -name '*.sqlite3-wal' -o -name '*.sqlite3-shm' -o \
+			-name '*.db' -o -name '*.db-wal' -o -name '*.db-shm' -o \
+			-name '*.json' -o -name '*.jsonl' \
+		\) -delete; \
+		find demo/counterfactual -type d -empty -not -path demo/counterfactual -delete; \
+	fi
 
 # Regenerate the canonical DTR JSONL from the OEP example artefacts.
 regen-dtr-jsonl:

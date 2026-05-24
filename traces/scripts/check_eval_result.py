@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import sqlite3
+from contextlib import closing
 from pathlib import Path
+
+from oep_traces.paths import EXPECTED_EVAL_SCHEMA_TITLE
 
 from oep_verify.verify_support import (
     load_json_object,
@@ -35,6 +38,11 @@ def rel(path: Path) -> str:
     return relative_path(ROOT, path)
 
 
+def read_only_state_connection() -> sqlite3.Connection:
+    state_uri = f"{DEMO_STATE_PATH.resolve().as_uri()}?mode=ro"
+    return sqlite3.connect(state_uri, uri=True)
+
+
 def main() -> None:
     schema = load_json_object(EVAL_SCHEMA_PATH)
     eval_result = load_json_object(EVAL_EXAMPLE_PATH)
@@ -43,7 +51,7 @@ def main() -> None:
     event = load_json_object(EVENT_EXAMPLE_PATH)
     permission = load_json_object(PERMISSION_EXAMPLE_PATH)
 
-    require(schema.get("title") == "Operational Evidence Plane Eval Result v0", "bad schema")
+    require(schema.get("title") == EXPECTED_EVAL_SCHEMA_TITLE, "bad schema")
     require(eval_result.get("schema_version") == "oep.eval_result.v0", "bad eval schema_version")
     require(eval_result.get("status") == "passed", "eval should be passed")
     require(eval_result.get("release_manifest_id") == trace.get("release_manifest_id"), "manifest mismatch")
@@ -78,8 +86,7 @@ def main() -> None:
     require(len(blocking_loss) == 0, "blocking evidence loss remains")
     require(DEMO_STATE_PATH.exists(), "generated demo SQLite state is required for eval validation")
 
-    connection = sqlite3.connect(DEMO_STATE_PATH)
-    try:
+    with closing(read_only_state_connection()) as connection:
         finding_count = scalar(
             connection,
             "SELECT COUNT(*) FROM findings WHERE trace_id = ? AND event_id = ?",
@@ -100,8 +107,6 @@ def main() -> None:
             (eval_result["eval_id"], eval_result["status"]),
         )
         require(eval_count == 1, "SQLite eval row mismatch")
-    finally:
-        connection.close()
 
     print("Eval result checks passed")
 

@@ -6,6 +6,51 @@ All notable changes to this reference implementation are documented here.
 
 ### Added
 
+- Added the v0.3 counterfactual policy replay primitive: given a stored
+  decision record from the v0.2 evidence chain, substitute a different
+  policy bundle version retroactively and re-derive the discrete OPA
+  decision that would have been made under the substituted policy.
+- Added `OEP_REPLAY_MODE=counterfactual` and extended `oep replay` with
+  `--counterfactual`, `--policy-bundle`, `--output-format`,
+  `--replay-timestamp-utc`, and `--strip-exclusions` options.
+- Added the counterfactual replay output schema
+  (`replay/counterfactual_replay.v0.schema.json`) and packaged schema
+  resource.
+- Added optional `nd_builtin_cache` capture to the tool permission
+  packet schema for deterministic injection of non-deterministic OPA
+  builtin outputs during counterfactual replay.
+- Added three counterfactual demos over the existing deterministic
+  code-review fixture: compound reliability, budget-per-run cross-over,
+  and approval-per-step escalation.
+- Added `make validate-counterfactual-replay`,
+  `make check-replay-determinism`, and
+  `make validate-counterfactual-schema`, wired into `make verify`.
+- Added pytest coverage for policy substitution, CLI counterfactual
+  mode, non-deterministic builtin cache injection, all three demos,
+  schema validation, cross-run byte identity, and denied-path replay
+  state discipline.
+
+### Notes
+
+- Counterfactual replay is positioned as one inspectable demonstration
+  of how the v0.2 evidence chain composes with retroactive policy
+  substitution. It is not a production-grade replay engine, not a
+  compliance certification, not a substitute for vendor
+  authorization-replay products, and does not constitute legal or
+  regulatory adequacy by itself.
+- The closest commercial precedents are Styra DAS log-replay and
+  Permit.io Audit Log Replay; both are OPA/Rego-oriented,
+  commercial-only products in the authorization domain rather than
+  agent-runtime replay engines. OEP v0.3 keeps the implementation
+  open-source, vendor-neutral, and native to agent runtime decision
+  records.
+- Drift attribution and cache-substitution counterfactual demos remain
+  v0.4 candidate design space.
+
+## v0.2.0 - 2026-05-15
+
+### Added
+
 - Added v0.2 replayable permission trace fields to the OPA-backed tool
   permission packet schema (`scoped_credential_lifetime`,
   `approval_capture`, `policy_bundle_version`,
@@ -32,9 +77,9 @@ All notable changes to this reference implementation are documented here.
 
 ### Notes
 
-- This release does not change the v0.1.x boundary statements. It is
-  still not production-ready, not standardization, not a compliance
-  proof, and not a vendor replacement.
+- This release does not change the previous boundary statements. It is
+  still not ready for production use, not standardization, not proof of
+  compliance, and not a vendor replacement.
 - v0.1 records remain valid against the extended permission packet
   schema. The new fields are nullable / omittable for backward
   compatibility.
@@ -64,4 +109,4 @@ Initial public release candidate for the Operational Evidence Plane reference im
 - Public API unchanged.
 - Schema contract introduced.
 - Public package boundary is the root `operational-evidence-plane` distribution; workspace directories are source and development boundaries for this release line.
-- This release candidate is not production-ready and does not create compliance readiness, legal-audit sufficiency, or standardization status.
+- This release candidate is not ready for production use and does not create compliance readiness, legal-audit sufficiency, or standardization status.

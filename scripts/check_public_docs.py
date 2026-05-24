@@ -6,6 +6,8 @@ import re
 from collections.abc import Iterable
 from pathlib import Path
 
+from oep_verify.artifacts import PACKAGED_ARTIFACTS, packaged_resource_sync_errors
+
 ROOT = Path(__file__).resolve().parents[1]
 
 FORBIDDEN_TEXT_PATTERNS = (
@@ -23,11 +25,8 @@ PUBLIC_TEXT_GLOBS = (
     ".github/**/*.yaml",
     "CITATION.cff",
 )
-PACKAGED_MARKDOWN_COPIES = (
-    (
-        Path("playbooks/rollback_reconstruction.md"),
-        Path("playbooks/src/oep_playbooks/resources/rollback_reconstruction.md"),
-    ),
+PACKAGED_MARKDOWN_ARTIFACTS = tuple(
+    artifact for artifact in PACKAGED_ARTIFACTS if artifact.canonical_path.endswith(".md")
 )
 MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 
@@ -70,13 +69,7 @@ def check_markdown_links() -> list[str]:
 
 
 def check_packaged_markdown_copies() -> list[str]:
-    errors: list[str] = []
-    for canonical, packaged in PACKAGED_MARKDOWN_COPIES:
-        canonical_path = ROOT / canonical
-        packaged_path = ROOT / packaged
-        if canonical_path.read_bytes() != packaged_path.read_bytes():
-            errors.append(f"packaged markdown drift: {packaged} differs from {canonical}")
-    return errors
+    return packaged_resource_sync_errors(ROOT, PACKAGED_MARKDOWN_ARTIFACTS)
 
 
 def main() -> None:

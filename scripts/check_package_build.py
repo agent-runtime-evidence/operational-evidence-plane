@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import os
 import shlex
 import subprocess
 import sys
@@ -33,9 +35,19 @@ def format_command(args: Sequence[str]) -> str:
     return subprocess.list2cmdline(args) if sys.platform == "win32" else shlex.join(args)
 
 
-def run(args: Sequence[str], *, cwd: Path = REPO_ROOT, disallowed_output: Sequence[str] = ()) -> str:
+def run(
+    args: Sequence[str],
+    *,
+    cwd: Path = REPO_ROOT,
+    disallowed_output: Sequence[str] = (),
+    env_overrides: dict[str, str] | None = None,
+) -> str:
+    env = None
+    if env_overrides is not None:
+        env = os.environ.copy()
+        env.update(env_overrides)
     try:
-        completed = subprocess.run(args, cwd=cwd, check=False, capture_output=True, text=True)
+        completed = subprocess.run(args, cwd=cwd, check=False, capture_output=True, text=True, env=env)
     except FileNotFoundError as exc:
         raise SystemExit(f"command not found: {args[0]}") from exc
 
@@ -146,9 +158,10 @@ def console_script_path(venv_python: Path, script_name: str) -> Path:
 def check_installed_wheel(wheel: Path, venv_python: Path) -> None:
     run([str(venv_python), "-m", "pip", "--disable-pip-version-check", "install", "--no-deps", str(wheel)])
     # `oep replay` runs schema validation on packets read from SQLite, so the
-    # declared `jsonschema` runtime dep must be present in the smoke venv.
-    run([str(venv_python), "-m", "pip", "--disable-pip-version-check", "install", "jsonschema>=4.23,<5"])
+    # declared `jsonschema[format]` runtime dep must be present in the smoke venv.
+    run([str(venv_python), "-m", "pip", "--disable-pip-version-check", "install", "jsonschema[format]>=4.23,<5"])
     state_path = venv_python.parent.parent / "oep-smoke-state.sqlite"
+    counterfactual_output_dir = venv_python.parent.parent / "counterfactual-smoke"
     smoke_script = textwrap.dedent(
         f"""
         import json
@@ -159,9 +172,17 @@ def check_installed_wheel(wheel: Path, venv_python: Path) -> None:
             __import__(package_name)
 
         from oep_verify.scenarios import scenario_names
-        from oep_manifest.paths import EXAMPLE_PATH as MANIFEST_PATH, SCHEMA_PATH as MANIFEST_SCHEMA_PATH
+        from oep_manifest.paths import (
+            EXAMPLE_PATH as MANIFEST_PATH,
+            EXPECTED_SCHEMA_TITLE as MANIFEST_SCHEMA_TITLE,
+            SCHEMA_PATH as MANIFEST_SCHEMA_PATH,
+        )
         from oep_events.paths import DENIED_EXAMPLE_PATH as DENIED_EVENT_PATH, EXAMPLE_PATH as EVENT_PATH
         from oep_permissions.paths import (
+            COUNTERFACTUAL_APPROVAL_PER_STEP_POLICY_PATH,
+            COUNTERFACTUAL_BUDGET_PER_RUN_POLICY_PATH,
+            COUNTERFACTUAL_COMPOUND_RELIABILITY_POLICY_PATH,
+            COUNTERFACTUAL_REPLAY_SCHEMA_PATH,
             DENIED_EXAMPLE_PATH as DENIED_PERMISSION_PATH,
             DENIED_INPUT_PATH,
             EXAMPLE_PATH as PERMISSION_PATH,
@@ -190,7 +211,7 @@ def check_installed_wheel(wheel: Path, venv_python: Path) -> None:
             PROMPT_CONTRACT_PATH,
             REPLAY_STATE_RECIPE_PATH,
         )
-        from oep_demo import run_demo
+        from oep_demo import run_compound_reliability_counterfactual, run_demo
 
         resource_paths = (
             MANIFEST_PATH,
@@ -202,8 +223,12 @@ def check_installed_wheel(wheel: Path, venv_python: Path) -> None:
             PERMISSION_PATH,
             INPUT_PATH,
             POLICY_PATH,
+            COUNTERFACTUAL_APPROVAL_PER_STEP_POLICY_PATH,
+            COUNTERFACTUAL_BUDGET_PER_RUN_POLICY_PATH,
+            COUNTERFACTUAL_COMPOUND_RELIABILITY_POLICY_PATH,
             POLICY_TEST_PATH,
             PERMISSION_SCHEMA_PATH,
+            COUNTERFACTUAL_REPLAY_SCHEMA_PATH,
             DENIED_EVAL_EXAMPLE_PATH,
             DENIED_TRACE_EXAMPLE_PATH,
             EVAL_EXAMPLE_PATH,
@@ -228,9 +253,7 @@ def check_installed_wheel(wheel: Path, venv_python: Path) -> None:
         if missing_scenarios:
             raise SystemExit(f"installed scenario registry is missing: {{missing_scenarios}}")
 
-        if json.loads(Path(MANIFEST_SCHEMA_PATH).read_text(encoding="utf-8"))["title"] != (
-            "Operational Evidence Plane Release Manifest v0"
-        ):
+        if json.loads(Path(MANIFEST_SCHEMA_PATH).read_text(encoding="utf-8"))["title"] != MANIFEST_SCHEMA_TITLE:
             raise SystemExit("installed manifest schema resource is unreadable")
         if "return None" not in Path(FIXTURE_PATH).read_text(encoding="utf-8"):
             raise SystemExit("installed demo fixture resource is unreadable")
@@ -238,6 +261,15 @@ def check_installed_wheel(wheel: Path, venv_python: Path) -> None:
         result = run_demo(Path({str(state_path)!r}))
         if result.finding_count != 1 or not result.state_path.is_file():
             raise SystemExit("installed demo runner did not generate expected replay state")
+
+        counterfactual_result = run_compound_reliability_counterfactual(Path({str(counterfactual_output_dir)!r}))
+        if (
+            counterfactual_result.total_steps != 10
+            or counterfactual_result.first_divergent_step != 5
+            or not counterfactual_result.json_path.is_file()
+            or not counterfactual_result.state_path.is_file()
+        ):
+            raise SystemExit("installed counterfactual demo runner did not generate expected outputs")
 
         requirements = metadata.requires("operational-evidence-plane") or []
         if not any(requirement.startswith("jsonschema") for requirement in requirements):
@@ -269,8 +301,44 @@ def check_installed_wheel(wheel: Path, venv_python: Path) -> None:
             str(cli_state_path),
             "--field",
             "decision_id",
-        ]
+        ],
+        env_overrides={"OEP_REPLAY_MODE": "read-only"},
     )
+    counterfactual_policy_path = run(
+        [
+            str(venv_python),
+            "-c",
+            (
+                "from oep_permissions.paths import COUNTERFACTUAL_COMPOUND_RELIABILITY_POLICY_PATH; "
+                "print(COUNTERFACTUAL_COMPOUND_RELIABILITY_POLICY_PATH)"
+            ),
+        ]
+    ).strip()
+    counterfactual_output = run(
+        [
+            str(console_script_path(venv_python, "oep")),
+            "replay",
+            "pder_code_review_read_diff_0001",
+            "--state-path",
+            str(cli_state_path),
+            "--counterfactual",
+            "--policy-bundle",
+            counterfactual_policy_path,
+            "--output-format",
+            "json",
+            "--replay-timestamp-utc",
+            "2026-05-23T00:00:00Z",
+        ],
+        env_overrides={"OEP_REPLAY_MODE": "counterfactual"},
+    )
+    counterfactual_record = json.loads(counterfactual_output)
+    if (
+        counterfactual_record.get("replay_mode") != "counterfactual"
+        or counterfactual_record.get("replay_metadata", {}).get("replay_timestamp_utc") != "2026-05-23T00:00:00Z"
+        or counterfactual_record.get("original", {}).get("decision") != "allow"
+        or counterfactual_record.get("counterfactual", {}).get("decision") != "allow"
+    ):
+        raise SystemExit("installed counterfactual CLI did not return expected JSON output")
 
 
 def main() -> None:

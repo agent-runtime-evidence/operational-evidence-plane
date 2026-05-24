@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import sqlite3
+from contextlib import closing
 from pathlib import Path
+
+from oep_traces.paths import EXPECTED_SCHEMA_TITLE
 
 from oep_verify.verify_support import (
     load_json_object,
@@ -36,6 +39,11 @@ def rel(path: Path) -> str:
     return relative_path(ROOT, path)
 
 
+def read_only_state_connection() -> sqlite3.Connection:
+    state_uri = f"{DEMO_STATE_PATH.resolve().as_uri()}?mode=ro"
+    return sqlite3.connect(state_uri, uri=True)
+
+
 def main() -> None:
     schema = load_json_object(TRACE_SCHEMA_PATH)
     trace = load_json_object(TRACE_EXAMPLE_PATH)
@@ -45,7 +53,7 @@ def main() -> None:
     permission = load_json_object(PERMISSION_EXAMPLE_PATH)
     manifest = load_json_object(MANIFEST_EXAMPLE_PATH)
 
-    require(schema.get("title") == "Operational Evidence Plane Trace Bundle v0", "bad schema")
+    require(schema.get("title") == EXPECTED_SCHEMA_TITLE, "bad schema")
     require(trace.get("schema_version") == "oep.operational_trace.v0", "bad trace schema_version")
     require(trace.get("release_manifest_id") == manifest.get("manifest_id"), "manifest join mismatch")
     if trace.get("status") == "replay_ready":
@@ -95,15 +103,12 @@ def main() -> None:
     require(replay.get("deterministic") == event_replay.get("deterministic"), "replay deterministic mismatch")
     require(replay.get("status") == "ready", "trace replay should be ready after demo state generation")
     require(DEMO_STATE_PATH.exists(), "generated demo SQLite state is required for ready replay")
-    connection = sqlite3.connect(DEMO_STATE_PATH)
-    try:
+    with closing(read_only_state_connection()) as connection:
         row = connection.execute(
             "SELECT COUNT(*) FROM events WHERE event_id = ? AND trace_id = ?",
             (event["event_id"], trace["trace_id"]),
         ).fetchone()
         require(row is not None and row[0] == 1, "ready replay state missing event row")
-    finally:
-        connection.close()
 
     eval_ref = require_json_object(trace.get("eval"), "trace eval must be an object")
     require(eval_ref.get("eval_id") == eval_result.get("eval_id"), "eval_id mismatch")

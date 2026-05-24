@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from oep_events.paths import EXPECTED_SCHEMA_TITLE
+
 from oep_verify.verify_support import (
     load_json_object,
     require,
@@ -37,7 +39,7 @@ def main() -> None:
     manifest = load_json_object(MANIFEST_EXAMPLE_PATH)
     permission_packet = load_json_object(PERMISSION_EXAMPLE_PATH)
 
-    require(schema.get("title") == "Operational Evidence Plane Agent Step Event v0", "bad schema")
+    require(schema.get("title") == EXPECTED_SCHEMA_TITLE, "bad schema")
     require(event.get("schema_version") == "oep.agent_step_event.v0", "bad event schema_version")
     require(event.get("release_manifest_id") == manifest.get("manifest_id"), "manifest join mismatch")
     require_datetime_not_after(

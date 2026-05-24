@@ -30,7 +30,7 @@ DEFAULT_PERMISSION_PATHS: tuple[Path, ...] = (
 
 
 def _stable_json(data: dict[str, Any]) -> str:
-    return json.dumps(data, indent=2) + "\n"
+    return json.dumps(data, indent=2, sort_keys=True) + "\n"
 
 
 def derive_versions(manifest_path: Path) -> tuple[str, str]:

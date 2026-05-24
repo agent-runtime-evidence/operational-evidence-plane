@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
+
+from oep_permissions.paths import EXPECTED_SCHEMA_TITLE
 
 from oep_verify.verify_support import (
     load_json_object,
     require,
     require_datetime_not_after,
+    require_executable,
     require_json_object,
     validate_json_schema,
 )
@@ -27,9 +29,7 @@ MANIFEST_EXAMPLE_PATH = ROOT / "manifest" / "examples" / "code_review_agent_rele
 
 
 def opa_decision() -> dict[str, Any]:
-    opa = shutil.which("opa")
-    if opa is None:
-        raise AssertionError("opa executable is required for permission packet validation")
+    opa = require_executable("opa", "permission packet validation")
     result = subprocess.run(
         [
             opa,
@@ -44,12 +44,12 @@ def opa_decision() -> dict[str, Any]:
         ],
         check=True,
         capture_output=True,
+        encoding="utf-8",
         text=True,
     )
     payload = json.loads(result.stdout)
     value = payload["result"][0]["expressions"][0]["value"]
-    require(isinstance(value, dict), "OPA decision must be an object")
-    return value
+    return require_json_object(value, "OPA decision must be an object")
 
 
 def main() -> None:
@@ -60,7 +60,7 @@ def main() -> None:
     event = load_json_object(EVENT_EXAMPLE_PATH)
     manifest = load_json_object(MANIFEST_EXAMPLE_PATH)
 
-    require(schema.get("title") == "Operational Evidence Plane Tool Permission Packet v0", "bad schema")
+    require(schema.get("title") == EXPECTED_SCHEMA_TITLE, "bad schema")
     require(packet.get("schema_version") == "oep.tool_permission_packet.v0", "bad packet schema_version")
     require(packet.get("release_manifest_id") == manifest.get("manifest_id"), "manifest join mismatch")
     require(packet.get("release_manifest_id") == event.get("release_manifest_id"), "event manifest mismatch")

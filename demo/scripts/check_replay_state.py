@@ -3,10 +3,16 @@
 from __future__ import annotations
 
 import sqlite3
+from contextlib import closing
 
 from oep_demo.paths import EVAL_PATH, EVENT_PATH, PERMISSION_PATH, STATE_PATH, TRACE_PATH
 
 from oep_verify.verify_support import load_json_object, require, scalar
+
+
+def read_only_state_connection() -> sqlite3.Connection:
+    state_uri = f"{STATE_PATH.resolve().as_uri()}?mode=ro"
+    return sqlite3.connect(state_uri, uri=True)
 
 
 def main() -> None:
@@ -17,8 +23,7 @@ def main() -> None:
 
     require(STATE_PATH.exists(), f"missing generated demo state: {STATE_PATH}")
 
-    connection = sqlite3.connect(STATE_PATH)
-    try:
+    with closing(read_only_state_connection()) as connection:
         event_count = scalar(
             connection,
             "SELECT COUNT(*) FROM events WHERE event_id = ? AND trace_id = ?",
@@ -53,8 +58,30 @@ def main() -> None:
             (eval_result["eval_id"], trace["trace_id"]),
         )
         require(eval_count == 1, "passed eval row missing from replay state")
-    finally:
-        connection.close()
+
+        permission_event_index_columns = [
+            row[2] for row in connection.execute("PRAGMA index_info('idx_permissions_event_id')").fetchall()
+        ]
+        require(
+            permission_event_index_columns == ["event_id"],
+            "permissions event-id index missing or malformed",
+        )
+
+        event_permission_ref_index_columns = [
+            row[2] for row in connection.execute("PRAGMA index_info('idx_events_permission_packet_ref')").fetchall()
+        ]
+        require(
+            event_permission_ref_index_columns == ["permission_packet_ref"],
+            "event permission-packet-ref index missing or malformed",
+        )
+
+        event_trace_manifest_index_columns = [
+            row[2] for row in connection.execute("PRAGMA index_info('idx_events_trace_manifest')").fetchall()
+        ]
+        require(
+            event_trace_manifest_index_columns == ["trace_id", "release_manifest_id"],
+            "event trace-manifest index missing or malformed",
+        )
 
     print("Demo replay state checks passed")
 

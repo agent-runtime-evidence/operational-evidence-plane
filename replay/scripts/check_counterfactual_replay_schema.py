@@ -65,11 +65,22 @@ def counterfactual_replay_example() -> dict[str, Any]:
 def main() -> None:
     counterfactual_schema = load_json_object(COUNTERFACTUAL_SCHEMA_PATH)
     permission_schema = load_json_object(PERMISSION_SCHEMA_PATH)
+    replay_example = counterfactual_replay_example()
 
     validate_json_schema(
         counterfactual_schema,
-        counterfactual_replay_example(),
+        replay_example,
         instance_path=COUNTERFACTUAL_SCHEMA_PATH,
+    )
+    _require_schema_rejects(
+        counterfactual_schema,
+        _without_determinism_exclusions(replay_example),
+        "determinism_exclusions",
+    )
+    _require_schema_rejects(
+        counterfactual_schema,
+        _with_wrong_determinism_exclusion(replay_example),
+        "does not contain items matching",
     )
 
     for example_path in PERMISSION_EXAMPLE_PATHS:
@@ -85,6 +96,28 @@ def main() -> None:
         validate_json_schema(permission_schema, packet_with_cache, instance_path=example_path)
 
     print("Counterfactual replay schema checks passed")
+
+
+def _without_determinism_exclusions(record: dict[str, Any]) -> dict[str, Any]:
+    invalid = copy.deepcopy(record)
+    invalid["replay_metadata"].pop("determinism_exclusions")
+    return invalid
+
+
+def _with_wrong_determinism_exclusion(record: dict[str, Any]) -> dict[str, Any]:
+    invalid = copy.deepcopy(record)
+    invalid["replay_metadata"]["determinism_exclusions"] = ["other.exclusion"]
+    return invalid
+
+
+def _require_schema_rejects(schema: dict[str, Any], record: dict[str, Any], expected_fragment: str) -> None:
+    try:
+        validate_json_schema(schema, record, instance_path=COUNTERFACTUAL_SCHEMA_PATH)
+    except ValueError as exc:
+        if expected_fragment in str(exc):
+            return
+        raise AssertionError(f"schema rejected invalid counterfactual record for the wrong reason: {exc}") from exc
+    raise AssertionError("schema accepted an invalid counterfactual replay record")
 
 
 if __name__ == "__main__":

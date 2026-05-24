@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,9 @@ DEFAULT_MANIFEST_PATH = ROOT / "manifest" / "examples" / "code_review_agent_rele
 
 
 def update_manifest_digests(manifest_path: Path, *, check: bool = False) -> bool:
+    if not manifest_path.is_file():
+        raise FileNotFoundError(f"release manifest not found: {manifest_path}")
+
     manifest = load_json_object(manifest_path)
     layer_bindings = require_json_object(manifest.get("layer_bindings"), "layer_bindings must be an object")
 
@@ -26,11 +30,11 @@ def update_manifest_digests(manifest_path: Path, *, check: bool = False) -> bool
 
         uri = binding.get("uri")
         if not isinstance(uri, str):
-            raise AssertionError(f"{layer} resolved binding must have an artifact uri")
+            raise TypeError(f"{layer} resolved binding must have an artifact uri")
 
         artifact_path = ROOT / uri
         if not artifact_path.exists():
-            raise AssertionError(f"{layer} resolved uri must point to a file or directory: {uri}")
+            raise ValueError(f"{layer} resolved uri must point to a file or directory: {uri}")
 
         expected_digest = sha256_digest(artifact_path)
         if binding.get("digest") != expected_digest:
@@ -52,10 +56,10 @@ def update_manifest_digests(manifest_path: Path, *, check: bool = False) -> bool
 
 
 def _stable_json(data: dict[str, Any]) -> str:
-    return json.dumps(data, indent=2) + "\n"
+    return json.dumps(data, indent=2, sort_keys=True) + "\n"
 
 
-def main() -> None:
+def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--manifest",
@@ -68,9 +72,12 @@ def main() -> None:
         action="store_true",
         help="Fail if any resolved binding digest is stale instead of writing updates.",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
-    ok = update_manifest_digests(args.manifest, check=args.check)
+    try:
+        ok = update_manifest_digests(args.manifest, check=args.check)
+    except (FileNotFoundError, TypeError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
     if not ok:
         raise SystemExit(1)
 

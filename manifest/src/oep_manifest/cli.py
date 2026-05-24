@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from oep_manifest.paths import EXAMPLE_PATH, SCHEMA_PATH
+from oep_manifest.paths import EXAMPLE_PATH, EXPECTED_SCHEMA_TITLE, SCHEMA_PATH
 
 EXPECTED_LAYERS = (
     "model",
@@ -49,7 +49,7 @@ def check_manifest(schema_path: Path, manifest_path: Path, *, artifact_root: Pat
     manifest = load_json_object(manifest_path)
     validate_json_schema(schema, manifest, instance_path=manifest_path)
 
-    require(schema.get("title") == "Operational Evidence Plane Release Manifest v0", "bad schema")
+    require(schema.get("title") == EXPECTED_SCHEMA_TITLE, "bad schema")
     require(manifest.get("schema_version") == "oep.release_manifest.v0", "bad schema_version")
     require(str(manifest.get("manifest_id", "")).startswith("rmf_"), "bad manifest_id")
     release = require_json_object(manifest.get("release"), "release must be an object")

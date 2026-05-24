@@ -1,4 +1,5 @@
 include README.md
+include .gitattributes
 include LICENSE
 include CHANGELOG.md
 include CONTRIBUTING.md
@@ -26,7 +27,7 @@ recursive-include scripts *.py
 recursive-include tests *.py
 
 global-exclude *.py[cod]
-global-exclude *.sqlite *.sqlite3 *.db
+global-exclude *.sqlite *.sqlite-shm *.sqlite-wal *.sqlite3 *.sqlite3-shm *.sqlite3-wal *.db *.db-shm *.db-wal
 global-exclude *.fragments.json
 global-exclude .coverage
 prune .venv

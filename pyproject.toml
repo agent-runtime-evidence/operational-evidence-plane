@@ -29,7 +29,7 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 dependencies = [
-  "jsonschema>=4.23,<5"
+  "jsonschema[format]>=4.23,<5"
 ]
 
 [project.urls]
@@ -84,6 +84,7 @@ oep_permissions = [
   "resources/schema/*.json",
   "resources/examples/*.json",
   "resources/policy/*.rego",
+  "resources/policy/counterfactual/*.rego",
   "resources/policy/input/*.json"
 ]
 oep_traces = ["py.typed", "resources/schema/*.json", "resources/examples/*.json"]
@@ -112,6 +113,14 @@ members = [
 testpaths = [
   "tests"
 ]
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
 
 [tool.ruff]
 line-length = 120

@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import shutil
 import sqlite3
 import subprocess
 from pathlib import Path
 from typing import Any
+
+from oep_playbooks.paths import EXPECTED_SCHEMA_TITLE as EXPECTED_RECONSTRUCTION_SCHEMA_TITLE
 
 from oep_verify.scenarios import (
     CANONICAL_STATE_REF,
@@ -23,6 +24,7 @@ from oep_verify.verify_support import (
     relative_path,
     require,
     require_datetime_not_after,
+    require_executable,
     require_json_list,
     require_json_object,
     require_resolved_layer_bindings,
@@ -48,9 +50,7 @@ def rel(path: Path) -> str:
 
 
 def opa_decision(policy_input_path: Path) -> dict[str, Any]:
-    opa = shutil.which("opa")
-    if opa is None:
-        raise AssertionError("opa executable is required for reconstruction validation")
+    opa = require_executable("opa", "reconstruction validation")
     result = subprocess.run(
         [
             opa,
@@ -65,12 +65,12 @@ def opa_decision(policy_input_path: Path) -> dict[str, Any]:
         ],
         check=True,
         capture_output=True,
+        encoding="utf-8",
         text=True,
     )
     payload = json.loads(result.stdout)
     value = payload["result"][0]["expressions"][0]["value"]
-    require(isinstance(value, dict), "OPA decision must be an object")
-    return value
+    return require_json_object(value, "OPA decision must be an object")
 
 
 def has_blocking_loss(losses: list[Any], field: str) -> bool:
@@ -111,7 +111,7 @@ def check_scenario(scenario: ScenarioArtifacts, *, state_path: Path = STATE_PATH
     packet = load_json_object(packet_path)
     validate_json_schema(packet_schema, packet, instance_path=packet_path)
 
-    require(packet_schema.get("title") == "Operational Evidence Plane Reconstruction Packet v0", "bad schema")
+    require(packet_schema.get("title") == EXPECTED_RECONSTRUCTION_SCHEMA_TITLE, "bad schema")
     require(packet.get("schema_version") == "oep.reconstruction_packet.v0", "bad packet schema_version")
     require(packet.get("reconstruction_status") == scenario.expected_reconstruction_status, "bad reconstruction status")
     if packet.get("reconstruction_status") == "ready":

@@ -41,9 +41,11 @@ make update-digests
 When changing canonical resources that are mirrored into packages, run:
 
 ```bash
+make sync-resources
 make build-check
 ```
 
+The sync target copies canonical artifacts into package resource directories.
 The package build check fails if canonical artifacts and packaged resources
 drift, if required source files are missing from the sdist, or if generated
 artifacts enter the release package.
@@ -52,13 +54,13 @@ artifacts enter the release package.
 
 Keep public wording aligned with `docs/public_claims.md`.
 
-Avoid claims that this repository is production-ready, audit-ready,
-compliance-proof, a standard, a vendor replacement, an agent framework, or a
-model-quality benchmark.
+Avoid claims of production readiness, audit readiness, proof of compliance,
+standardization, vendor replacement, agent-framework scope, or model-quality
+benchmarking.
 
 ## Scope
 
 The public distribution is the root `operational-evidence-plane` package.
 Workspace member directories are source and development boundaries for the
 reference implementation; they are not independently published packages for the
-`v0.1.x` release line.
+current release line.

@@ -9,9 +9,9 @@
 
 Operational Evidence Plane is a small, runnable reference implementation for making agent runtime behavior reconstructable after release. It binds release-time intent (model, prompt, tool schema, policy, workflow, rollout, eval, and data-state references) to runtime evidence (events, OPA-backed permission decisions, traces, replay state, eval results, and reconstruction packets).
 
-A quick scan should make three things clear: the repository is code, not a concept note (`make verify` rebuilds replay state and checks joins); it is vendor-neutral, not a replacement for Bedrock, LangSmith, OPA, OTel, MCP, A2A, or cloud release tools; and it is intentionally bounded to a deterministic code-review demo using mocked LLM behavior, SQLite state, and real OPA decisions.
+A quick scan should make three things clear: the repository is code, not a concept note (`make verify` rebuilds replay state and checks joins, including counterfactual replay determinism); it is vendor-neutral, not a replacement for Bedrock, LangSmith, OPA, OTel, MCP, A2A, cloud release tools, Styra DAS, or Permit.io; and it is intentionally bounded to a deterministic code-review demo using mocked LLM behavior, SQLite state, and real OPA decisions.
 
-Use it to inspect whether a runtime action can be joined back to a release manifest, verify policy decisions against trace and replay evidence, and package a minimal evidence chain that humans and CI can review without a vendor-specific control plane.
+Use it to inspect whether a runtime action can be joined back to a release manifest, verify policy decisions against trace and replay evidence, replay a stored decision under a substituted policy bundle, and package a minimal evidence chain that humans and CI can review without a vendor-specific control plane.
 
 This repository is an open, vendor-neutral reference implementation. It extends patterns already visible in vendor-native agent versions, prompt registries, policy engines, and telemetry specs, but does not replace them and does not claim standardization or production readiness. The first demo target is a deterministic code-review agent using Python, SQLite, real OPA decisions, scenario-agnostic schemas, and mocked LLM behavior.
 
@@ -19,7 +19,35 @@ This repository is an open, vendor-neutral reference implementation. It extends 
 
 ![Operational Evidence Plane evidence chain](docs/oep_evidence_chain.svg)
 
-The inspectable path is intentionally narrow: a release manifest names the shipped configuration, runtime events and OPA-backed permission packets record what happened, trace and replay state preserve the joins, and eval/reconstruction outputs show what can and cannot be reconstructed.
+The inspectable path is intentionally narrow: a release manifest names the shipped configuration, runtime events and OPA-backed permission packets record what happened, trace and replay state preserve the joins, eval/reconstruction outputs show what can and cannot be reconstructed, and the unreleased v0.3 counterfactual branch re-derives the discrete policy decision under a substituted policy bundle.
+
+## Counterfactual Policy Replay
+
+The unreleased v0.3 branch adds a counterfactual policy replay primitive over the v0.2 decision record. Given a stored `decision_id`, the replay operation reconstructs the recorded OPA input context from SQLite, substitutes a different policy bundle, re-runs OPA deterministically, and emits an original-vs-counterfactual decision diff that validates against [`replay/counterfactual_replay.v0.schema.json`](replay/counterfactual_replay.v0.schema.json).
+
+```bash
+oep replay pder_code_review_read_diff_0001 \
+  --counterfactual \
+  --policy-bundle permissions/policy/counterfactual/compound_reliability_step_bound.rego \
+  --output-format json \
+  --replay-timestamp-utc 2026-05-23T00:00:00Z
+```
+
+`OEP_REPLAY_MODE=counterfactual` enables the same mode from the environment. `--replay-timestamp-utc` pins the otherwise excluded wall-clock replay timestamp when comparing CLI JSON byte-for-byte; `--strip-exclusions` removes fields listed in `replay_metadata.determinism_exclusions` before printing JSON/JSONL output. `make validate-counterfactual-replay` regenerates the three counterfactual demos; `make check-replay-determinism` checks byte-identical SQLite state, counterfactual JSON/JSONL, and DTR JSONL across runs.
+
+The three demos all extend the existing deterministic code-review fixture:
+
+- compound reliability: a 10-step workflow replayed under a stricter 4-step bounded policy;
+- budget-per-run cross-over: a synthetic runaway loop replayed under a stricter budget cap;
+- approval-per-step escalation: a workflow replayed under a stricter write-approval policy.
+
+Closest commercial precedents are [Styra DAS log-replay](https://docs.styra.com/das/observability-and-audit/decision-logs/log-replay) and [Permit.io Audit Log Replay](https://docs.permit.io/how-to/use-audit-logs/audit-log-replay). Both are useful authorization-domain precedents, but they are OPA/Rego-oriented, commercial-only products rather than an open-source, vendor-neutral, agent-runtime-decision-record-native reference implementation. The unreleased v0.3 branch demonstrates how the same replay shape can compose with agent runtime evidence records without claiming to replace those products.
+
+[Srinivasan, "A Methodology for Selecting and Composing Runtime Architecture Patterns for Production LLM Agents"](https://arxiv.org/abs/2605.20173) (arXiv:2605.20173, 19 May 2026) is the Q2 2026 academic anchor for the Replay Divergence Problem: LLM-based consumers of deterministic logs can diverge under model-version or prompt changes. The unreleased v0.3 counterfactual policy replay work is one inspectable mitigation framework for the policy-substitution axis; it does not re-execute the LLM call under substituted model weights.
+
+The Decision Evidence Maturity Model method specification that underlies the evidence-chain framing is my arXiv preprint at [arXiv:2605.04093](https://arxiv.org/abs/2605.04093) / DOI [`10.48550/arXiv.2605.04093`](https://doi.org/10.48550/arXiv.2605.04093). The unreleased v0.3 work implements the policy-substitution axis; the method paper formalizes a broader four-axis substitution model (policy + cost + drift + cache), while drift attribution and cache-substitution counterfactual demos are v0.4 candidate design space.
+
+Boundary: this is not a production-grade replay engine, not a compliance certification, not a substitute for vendor authorization-replay products, and does not constitute legal or regulatory adequacy by itself.
 
 ## Quickstart
 
@@ -40,6 +68,36 @@ chmod +x opa
 sudo mv opa /usr/local/bin/opa
 ```
 
+If OPA is available outside `PATH`, set `OEP_OPA_BIN_PATH=/path/to/opa`.
+`OPA_PATH` is also accepted as a fallback override.
+Set `OEP_OPA_EVAL_TIMEOUT_SECONDS` to tune the counterfactual OPA
+subprocess timeout in seconds; the default is `30` and the minimum is
+`0.001`. OPA stdin payloads are capped at 8 MiB; split larger replay
+batches before evaluation.
+Set `OEP_OPA_COMMAND_WRAPPER` to prepend a local containment command
+to OPA invocations, for example `prlimit --as=100000000` in CI
+environments that evaluate substituted policy bundles. The wrapper
+executable is restricted to `docker`, `nice`, `prlimit`, or `sudo`.
+The executable must resolve from `PATH` to a trusted system or local tool
+directory such as `/usr/bin`, `/bin`, `/usr/sbin`, `/sbin`,
+`/usr/local/bin`, or `/opt/homebrew/bin`.
+Wrapper arguments are restricted to allow-listed options and strict
+values for the selected wrapper; positional alternate binary targets are
+rejected. Docker wrappers must use `docker run` and a constrained option
+set such as `--rm`, `--init`, `--network none`, `--user`, `--cpus`,
+`--memory`, `--pids-limit`, `--read-only`, and read-only `-v` /
+`--volume` bind mounts in `host_path:container_path:ro` form. When a
+read-only bind mount contains the policy bundle path, OEP rewrites the
+OPA `--data` argument to the corresponding container path.
+Wrappers must keep the OPA child in the spawned process group
+or forward termination signals so timeout cleanup can stop the full
+evaluation tree. If adapting the wrapper path for container execution,
+use an init or signal-forwarding entrypoint.
+The reference implementation invokes OPA through the CLI for each replay
+batch. Higher-volume deployments can preserve the same deterministic
+input/output contract while routing evaluation through a local OPA server
+or a WASM runtime.
+
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
@@ -48,7 +106,7 @@ uv sync --extra dev --locked
 make verify
 ```
 
-This compiles the packages, tests and evaluates the OPA policy, regenerates `demo/state/code_review_agent.sqlite`, checks every cross-artifact join, validates the deterministic eval, checks the reconstruction packet, verifies the committed DTR JSONL projection, checks the MCP -> OEP permission packet projection, and exercises the `oep replay` reader against generated replay state.
+This compiles the packages, tests and evaluates the OPA policy, validates the counterfactual replay schema, regenerates `demo/state/code_review_agent.sqlite`, checks every cross-artifact join, validates the deterministic eval, checks the reconstruction packet, verifies the committed DTR JSONL projection, checks the MCP -> OEP permission packet projection, exercises the `oep replay` reader against generated replay state, and checks counterfactual replay determinism across generated SQLite, JSON/JSONL, and DTR outputs.
 It also builds the root wheel/sdist, installs the wheel in a temporary virtual environment, and checks that the installed packages keep their typing markers.
 
 Smoke tests run through pytest:
@@ -69,9 +127,12 @@ Linting, type checking, policy tests, and artifact maintenance:
 make lint
 make typecheck
 make test-policy
+make sync-resources
 make build-check
 make check-digests
 make check-dtr-jsonl
+make validate-counterfactual-replay
+make check-replay-determinism
 make update-digests
 ```
 
@@ -82,6 +143,7 @@ oep-verify-manifest
 oep-run-demo --state-path /tmp/oep-code-review.sqlite
 oep-check-reconstruction
 oep replay pder_code_review_read_diff_0001
+OEP_REPLAY_MODE=counterfactual oep replay pder_code_review_read_diff_0001 --policy-bundle permissions/policy/counterfactual/compound_reliability_step_bound.rego
 ```
 
 `oep replay <decision_id>` is a read-only reader over the local SQLite
@@ -155,6 +217,10 @@ The permission packet is the first OPA-backed runtime evidence layer:
 - [Code-review tool permission example](permissions/examples/code_review_tool_permission.v0.json)
 - [Denied write permission example](permissions/examples/code_review_tool_permission_denied.v0.json)
 - [OPA policy](permissions/policy/tool_permissions.rego)
+- [Counterfactual replay output schema](replay/counterfactual_replay.v0.schema.json)
+- [Compound reliability counterfactual policy](permissions/policy/counterfactual/compound_reliability_step_bound.rego)
+- [Budget-per-run counterfactual policy](permissions/policy/counterfactual/budget_per_run_cap.rego)
+- [Approval-per-step counterfactual policy](permissions/policy/counterfactual/approval_per_step_escalation.rego)
 - [OPA input](permissions/policy/input/code_review_read_diff.json)
 - [Denied OPA input](permissions/policy/input/code_review_write_diff.json)
 
@@ -172,10 +238,12 @@ The demo materializes local replay state:
 - [Synthetic diff fixture](demo/fixtures/diff_synthetic_001.patch)
 - [Replay-state recipe](demo/state/replay_state_recipe.md)
 - [Deterministic demo runner](demo/src/oep_demo/runner.py)
+- [Counterfactual demo runner](demo/src/oep_demo/counterfactual.py)
 - [Run script](demo/scripts/run_code_review_demo.py)
 - [Replay-state checker](demo/scripts/check_replay_state.py)
+- [Counterfactual replay checker](replay/scripts/check_counterfactual_replay.py)
 
-`make verify` regenerates `demo/state/code_review_agent.sqlite` from the committed artifacts and checks that the committed DTR JSONL projection is up to date. The SQLite file is intentionally ignored; it is reproducible local state, not source.
+`make verify` regenerates `demo/state/code_review_agent.sqlite` from the committed artifacts, checks that the committed DTR JSONL projection is up to date, and runs the counterfactual replay determinism checks. SQLite files and generated counterfactual JSON/JSONL outputs under `demo/counterfactual/` are intentionally ignored; they are reproducible local state, not source.
 
 The playbook packet is the first reconstruction output:
 
@@ -190,7 +258,7 @@ The current inspectable chain is:
 release manifest -> agent-step event -> OPA-backed permission packet -> trace bundle -> SQLite replay state -> deterministic eval result -> reconstruction packet
 ```
 
-The primary eval is a deterministic smoke check over one synthetic fixture. The denied path demonstrates blocked replay readiness when OPA denies a tool call and no SQLite replay state is generated. Neither is a benchmark, model-quality claim, safety certification, or production monitoring result.
+The unreleased v0.3 counterfactual branch starts from the stored permission decision and replay state, substitutes a policy bundle, re-derives the discrete decision, and emits a schema-validated original-vs-counterfactual diff. The primary eval is a deterministic smoke check over one synthetic fixture. The denied path demonstrates blocked replay readiness when OPA denies a tool call and no SQLite replay state is generated. Neither is a benchmark, model-quality claim, safety certification, or production monitoring result.
 
 ## Replayable Permission Trace Fields (v0.2)
 
@@ -210,6 +278,7 @@ new primitives in use.
 | `model_alias` | Model alias as called by the agent (for example `claude-sonnet-4-6`). |
 | `resolved_model_version` | Resolved underlying model version at call time. |
 | `model_provider` | Provider of the model (for example `anthropic`, `openai`, `google`). |
+| `nd_builtin_cache` | Optional replay cache for non-deterministic OPA builtin results such as time or HTTP lookups. `null` or omitted when no non-deterministic builtin capture is needed. |
 
 The `model_*` fields are recorded because API providers can change
 underlying model behavior under unchanged aliases. Recording the
@@ -257,6 +326,7 @@ their deployment context.
 
 ```bash
 oep replay <decision_id>
+oep replay <decision_id> --counterfactual --policy-bundle <path-to-rego-bundle>
 ```
 
 `oep replay` is a thin read-only reader over the local SQLite replay
@@ -265,12 +335,25 @@ recorded permission trace for a decision id (the `pder_*` packet
 identifier) by joining the recorded permission packet, agent-step
 event, trace bundle, and release-manifest summary.
 
+The demo runner materializes SQLite state at a temporary path and publishes
+the completed database with an atomic replace. Existing replay readers keep
+their current file handle; new readers open the completed replacement.
+
 - The CLI does not make live model or vendor API calls.
 - It does not introduce new persistence; it only reads existing rows.
 - Pass `--state-path` to read from an alternate SQLite path, or set
   `OEP_DEMO_STATE_PATH` before running the demo.
 - Pass `--field <name>` to print a specific record field instead of the
   full JSON record.
+- Pass `--counterfactual --policy-bundle <path>` to re-derive the
+  decision under a substituted policy bundle. `OEP_REPLAY_MODE` accepts
+  `read-only` (default) or `counterfactual`.
+- Pass `--output-format json`, `jsonl`, or `human`. Read-only replay
+  defaults to JSON; counterfactual replay defaults to human output.
+- Pass `--replay-timestamp-utc <date-time>` in counterfactual mode when
+  CLI JSON must be compared byte-for-byte.
+- Pass `--strip-exclusions` in counterfactual JSON/JSONL mode to remove
+  fields listed in `replay_metadata.determinism_exclusions` before output.
 
 ## MCP Adapter
 
@@ -289,15 +372,19 @@ OpenAI Assistants, Bedrock) remain post-core translation material.
 
 - reference implementation, not framework
 - not a vendor replacement
-- not production-ready
+- not ready for production use
+- not a production-grade replay engine
 - not a standardization proposal
+- not a compliance certification
+- not a substitute for vendor authorization-replay products
 - does not create compliance, audit readiness, or legal sufficiency by itself
+- does not constitute legal or regulatory adequacy by itself
 - demonstrates one wiring pattern among several plausible ones
 - designed for inspectability and education first
 
 ## Workspace Packages
 
-The public Python distribution is the root package, `operational-evidence-plane`. The workspace directories below are source and development boundaries for the reference implementation; they are not independently published packages for `v0.1.0`.
+The public Python distribution is the root package, `operational-evidence-plane`. The workspace directories below are source and development boundaries for the reference implementation; they are not independently published packages for this release line.
 
 | Package | Intended scope |
 |---|---|
@@ -316,6 +403,7 @@ The public Python distribution is the root package, `operational-evidence-plane`
 | Azure `azure-ai-projects` 2.1.0 | Azure AI Projects SDK consolidation gives a current Foundry project surface, with 2.1.0 as the verified version anchor from 2026-04-20. | Useful SDK/platform integration, but not a named cross-stack release manifest with runtime replay and incident joins. |
 | Vertex | Vertex `ReasoningEngine` and related Google Cloud surfaces expose deployment, model, evaluation, memory, RAG/search, and IAM concepts across separate resources. | A partial resource-binding precedent, not a single vendor-neutral release/runtime evidence artifact. |
 | LangSmith | LangSmith Deployment supports managed deployments and revisions; LangSmith prompts support commit history, staging / production environments, rollback, tags, and the public prompt hub. | Strong observability, deployment, and prompt-management precedent, but split from permission packet, replay protocol, and incident playbook scope. |
+| Styra DAS / Permit.io | Authorization-domain log replay re-evaluates historical OPA/Rego decisions against changed policy or data. | Closest commercial replay precedent, but not an agent-runtime decision-record chain and not a product this repository replaces. |
 | OTel GenAI | OpenTelemetry GenAI semantic conventions describe runtime telemetry fields for generative AI systems. | Runtime telemetry substrate, not release management or cross-stack version binding. |
 | MCP | Model Context Protocol defines tool and context communication patterns for agentic systems. | Runtime communication protocol, not a release manifest or incident reconstruction model. |
 | A2A | Agent2Agent protocol defines inter-agent communication patterns. | Coordination protocol, not release-time binding, rollback, or replay evidence. |
@@ -335,7 +423,7 @@ AgentReplay is an adjacent local-first desktop project for evals, observability,
 
 ## What This Is NOT
 
-This is not an agent framework, model gateway, tracing backend, policy language, compliance product, legal-audit package, vendor replacement, or production platform. It is also not a claim that adjacent vendor and open-source tools are absent. The safer claim is narrower: public artifacts mostly expose adjacent slices, and this repository demonstrates one inspectable way to stitch release-time and runtime evidence together.
+This is not an agent framework, model gateway, tracing backend, policy language, compliance product, legal-audit package, vendor replacement, production platform, production-grade replay engine, compliance certification, or substitute for vendor authorization-replay products. It does not constitute legal or regulatory adequacy by itself. It is also not a claim that adjacent vendor and open-source tools are absent. The safer claim is narrower: public artifacts mostly expose adjacent slices, and this repository demonstrates one inspectable way to stitch release-time and runtime evidence together.
 
 ## Reference Stack
 

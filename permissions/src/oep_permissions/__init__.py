@@ -1,6 +1,10 @@
 """Permission decision package for the Operational Evidence Plane."""
 
 from oep_permissions.paths import (
+    COUNTERFACTUAL_APPROVAL_PER_STEP_POLICY_PATH,
+    COUNTERFACTUAL_BUDGET_PER_RUN_POLICY_PATH,
+    COUNTERFACTUAL_COMPOUND_RELIABILITY_POLICY_PATH,
+    COUNTERFACTUAL_REPLAY_SCHEMA_PATH,
     DENIED_EXAMPLE_PATH,
     DENIED_INPUT_PATH,
     EXAMPLE_PATH,
@@ -9,9 +13,24 @@ from oep_permissions.paths import (
     POLICY_TEST_PATH,
     SCHEMA_PATH,
 )
-from oep_permissions.replay import ReplayError, ReplayRecord, reconstruct_decision
+from oep_permissions.replay import (
+    CounterfactualReplayRecord,
+    JoinInconsistencyError,
+    OpaEvaluationError,
+    ReplayError,
+    ReplayRecord,
+    SchemaValidationError,
+    StateNotFoundError,
+    counterfactual_replay_decision,
+    counterfactual_replay_decisions,
+    reconstruct_decision,
+)
 
 __all__ = [
+    "COUNTERFACTUAL_APPROVAL_PER_STEP_POLICY_PATH",
+    "COUNTERFACTUAL_BUDGET_PER_RUN_POLICY_PATH",
+    "COUNTERFACTUAL_COMPOUND_RELIABILITY_POLICY_PATH",
+    "COUNTERFACTUAL_REPLAY_SCHEMA_PATH",
     "DENIED_EXAMPLE_PATH",
     "DENIED_INPUT_PATH",
     "EXAMPLE_PATH",
@@ -19,7 +38,14 @@ __all__ = [
     "POLICY_PATH",
     "POLICY_TEST_PATH",
     "SCHEMA_PATH",
+    "CounterfactualReplayRecord",
+    "JoinInconsistencyError",
+    "OpaEvaluationError",
     "ReplayError",
     "ReplayRecord",
+    "SchemaValidationError",
+    "StateNotFoundError",
+    "counterfactual_replay_decision",
+    "counterfactual_replay_decisions",
     "reconstruct_decision",
 ]
