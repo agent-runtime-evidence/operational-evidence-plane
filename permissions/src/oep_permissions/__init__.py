@@ -23,7 +23,12 @@ from oep_permissions.replay import (
     StateNotFoundError,
     counterfactual_replay_decision,
     counterfactual_replay_decisions,
+    decision_surface_presence,
+    diff_decision_surfaces,
+    project_pre_session_cost,
     reconstruct_decision,
+    replay_decision_with_substitutions,
+    simulate_reserve_commit_release,
 )
 
 __all__ = [
@@ -47,5 +52,10 @@ __all__ = [
     "StateNotFoundError",
     "counterfactual_replay_decision",
     "counterfactual_replay_decisions",
+    "decision_surface_presence",
+    "diff_decision_surfaces",
+    "project_pre_session_cost",
     "reconstruct_decision",
+    "replay_decision_with_substitutions",
+    "simulate_reserve_commit_release",
 ]

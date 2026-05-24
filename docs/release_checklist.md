@@ -46,10 +46,11 @@ It does not mean production readiness, compliance readiness, standardization, le
 ## v0.3 Counterfactual Replay Checks
 
 - [ ] All three counterfactual demos pass through `make verify`.
+- [ ] The v0.3 per-CR targets and `validate-composite` / `validate-backward-compat` pass through `make verify`.
 - [ ] `make check-replay-determinism` passes with byte-identical SQLite state, counterfactual JSON/JSONL, and DTR JSONL across runs.
 - [ ] README counterfactual wording is reviewed against `docs/public_claims.md`.
-- [ ] `docs/architecture.md` describes counterfactual policy replay as policy-bundle substitution only, not model re-execution.
-- [ ] `docs/decision_log.md` includes the v0.3 scope rows and v0.4 deferrals.
+- [ ] `docs/architecture.md` distinguishes deterministic replay surfaces from evaluative model/cache-fresh-call estimates.
+- [ ] `docs/decision_log.md` includes the v0.3 scope rows.
 - [ ] `CHANGELOG.md` `[Unreleased]` is ready to be renamed to `v0.3.0 - YYYY-MM-DD` at release tag.
 
 ## Pre-Publication Privacy Pass

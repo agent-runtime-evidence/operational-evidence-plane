@@ -2,11 +2,11 @@
 
 All notable changes to this reference implementation are documented here.
 
-## [Unreleased]
+## v0.3.0 - 2026-05-24
 
 ### Added
 
-- Added the v0.3 counterfactual policy replay primitive: given a stored
+- Added the counterfactual policy replay primitive: given a stored
   decision record from the v0.2 evidence chain, substitute a different
   policy bundle version retroactively and re-derive the discrete OPA
   decision that would have been made under the substituted policy.
@@ -22,30 +22,118 @@ All notable changes to this reference implementation are documented here.
 - Added three counterfactual demos over the existing deterministic
   code-review fixture: compound reliability, budget-per-run cross-over,
   and approval-per-step escalation.
+- Added cross-provider drift counterfactual replay:
+  `oep replay --substitute-model <provider:model_version>`. Output is
+  labelled as evaluative replay (`replay_class: evaluative`); both
+  the recorded estimate and the actual are retained.
+- Added cost-bounded counterfactual replay:
+  `oep replay --substitute-budget <policy>` re-evaluates each step
+  under a substituted budget policy and reports the first step that
+  would have been blocked. Added `per_step_cost_usd`,
+  `per_step_cost_tokens`, `budget_cap_active`, and
+  `budget_cap_source` fields.
+- Added the reserve-commit-release cost-reservation lifecycle via
+  `oep reserve`, and the pre-session projected-cost gate via
+  `oep project --approve`. Added `budget_reservation_id`,
+  `reservation_estimated_cost_usd`,
+  `reservation_committed_cost_usd`,
+  `reservation_excess_released_usd`, `reservation_outcome`, and
+  `pre_session_projection_event` fields. The projection path emits
+  the evaluative-replay marker.
+- Added the 5-surface drift attribution diff and historical replay:
+  `oep diff <decision_id_a> <decision_id_b> --surface
+  model,policy,prompt,tool,corpus`, and extended substitution via
+  `oep replay <id> --substitute
+  model=...,policy=...,prompt=...,tool=...,corpus=...`. Added
+  per-surface `before_version`, `after_version`, `change_class`,
+  and `attribution_confidence` fields.
+- Added cache-substitution counterfactual replay and cache-provenance
+  fields: `oep replay <id> --substitute-cache-policy
+  <staleness|embedding_version>` plus `cache_hit_id`,
+  `cache_version`, `embedding_model_version`, `staleness_flag`,
+  `cache_correctness_status`, `similarity_score`, and
+  `invalidation_event_id` fields. Staleness-policy rejection is
+  deterministic; cache→fresh-call substitution emits the
+  evaluative-replay marker.
+- Added the ID-JAG agent-identity integration: an agent-identity
+  object bound into the approval-capture record alongside scoped
+  credential lifetime. ID-JAG is cited as the IETF draft
+  `draft-ietf-oauth-identity-assertion-authz-grant`, not as an
+  adopted standard, and the MCP basic specification is NOT claimed
+  to reference ID-JAG.
+- Added a unified `decision_id` composite that joins policy,
+  permission, cost, 5-surface drift, cache, and identity sub-objects
+  into a single counterfactually replayable record, together with a
+  composite integration test that runs a composed substitution
+  (policy + budget + model) over a fixture decision record carrying
+  all six sub-objects.
+- Bumped schema to `schema_version: "0.3"` with additive, optional
+  field additions across cost, cache, identity, and the 5-surface
+  drift namespace. v0.2 records continue to validate and replay
+  against the v0.3 schema; absent surfaces are reported as
+  "not recorded" rather than as errors. Migration documented in
+  `docs/schema_migration_v0.3.md`.
 - Added `make validate-counterfactual-replay`,
   `make check-replay-determinism`, and
   `make validate-counterfactual-schema`, wired into `make verify`.
-- Added pytest coverage for policy substitution, CLI counterfactual
+- Added `replay/scripts/check_v03_features.py` and the
+  `validate-5surface-diff`, `validate-cost-counterfactual`,
+  `validate-reserve-commit-release`,
+  `validate-cross-provider-drift`, `validate-cache-substitution`,
+  `validate-identity-binding`, `validate-composite`, and
+  `validate-backward-compat` targets, all wired into `make verify`.
+- Extended pytest coverage to policy substitution, CLI counterfactual
   mode, non-deterministic builtin cache injection, all three demos,
-  schema validation, cross-run byte identity, and denied-path replay
-  state discipline.
+  schema validation, cross-run byte identity, denied-path replay
+  state discipline, the five v0.3 feature checks (reserve,
+  cross-provider, cache, identity, composite), and the
+  backward-compat regression of v0.2 fixtures against the v0.3
+  schema.
+- Added the v0.3 documentation block: EU AI Act Articles
+  19 / 26(6) / 50 / 73 mapping (education-only; no compliance
+  claim); AAGATE (arXiv:2510.25863) framed as complementary, not
+  competitor; MCP supply-chain non-claim statement; Replay
+  Divergence Problem positioning hook (SDB arXiv:2605.20173);
+  Lusser's Law reliability-arithmetic anchor; NIST AI RMF "1.0
+  current (under revision); 1.1 via addenda / profiles" wording.
 
 ### Notes
 
-- Counterfactual replay is positioned as one inspectable demonstration
-  of how the v0.2 evidence chain composes with retroactive policy
-  substitution. It is not a production-grade replay engine, not a
-  compliance certification, not a substitute for vendor
-  authorization-replay products, and does not constitute legal or
-  regulatory adequacy by itself.
+- Counterfactual replay across the five substitution axes (policy,
+  model, budget, cache, identity) is positioned as one inspectable
+  demonstration that the v0.2 evidence chain composes into a
+  unified, counterfactually replayable decision record. It is not a
+  production-grade replay engine, not a compliance certification,
+  not a substitute for vendor authorization-replay or observability
+  products, and does not constitute legal or regulatory adequacy by
+  itself.
+- The non-determinism boundary is honest: policy / permission /
+  budget substitution and 5-surface config diff produce
+  deterministic "would / would-not have been allowed" outputs;
+  cross-provider model substitution, cache→fresh-call substitution,
+  and pre-session cost projection emit a `replay_class: evaluative`
+  marker and record the substitution as a counterfactual estimate,
+  not as a definitive re-derivation. This ties to the Replay
+  Divergence Problem positioning hook (SDB arXiv:2605.20173).
 - The closest commercial precedents are Styra DAS log-replay and
-  Permit.io Audit Log Replay; both are OPA/Rego-oriented,
-  commercial-only products in the authorization domain rather than
-  agent-runtime replay engines. OEP v0.3 keeps the implementation
-  open-source, vendor-neutral, and native to agent runtime decision
-  records.
-- Drift attribution and cache-substitution counterfactual demos remain
-  v0.4 candidate design space.
+  Permit.io Audit Log Replay (policy domain); RunCycles
+  (https://runcycles.io, Apache 2.0) ships the closest
+  reserve-commit-release transactional cost model; SAFE-CACHE
+  (PMC12894985), Krites / AVSC (arXiv:2602.13165), and the
+  NDSS 2026 cache-poisoning research provide the academic substrate
+  for the cache-correctness primitives. OEP keeps the combined
+  implementation open-source, vendor-neutral, and native to agent
+  runtime decision records.
+- Per-claim caveats applied: cost incidents (the $47K agent loop,
+  the $437 overnight loop, the Particula 847-step incident) are
+  cited as practitioner-reported, single-source; OTel GenAI
+  crypto-identity fields (`agent.trust_score`,
+  `agent.drift_score`, `agent.scan_verdict`, Ed25519 as an OTel
+  standard), MLflow GEPA / MIPRO / MemAlign tuning, and AWS
+  AgentCore "graduated budget gates 50% / 75% / 90%" as shipped
+  vendor features are NOT cited in this release.
+- v0.2 records remain valid and replayable against the v0.3
+  schema.
 
 ## v0.2.0 - 2026-05-15
 

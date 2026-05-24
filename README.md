@@ -19,11 +19,11 @@ This repository is an open, vendor-neutral reference implementation. It extends 
 
 ![Operational Evidence Plane evidence chain](docs/oep_evidence_chain.svg)
 
-The inspectable path is intentionally narrow: a release manifest names the shipped configuration, runtime events and OPA-backed permission packets record what happened, trace and replay state preserve the joins, eval/reconstruction outputs show what can and cannot be reconstructed, and the unreleased v0.3 counterfactual branch re-derives the discrete policy decision under a substituted policy bundle.
+The inspectable path is intentionally narrow: a release manifest names the shipped configuration, runtime events and OPA-backed permission packets record what happened, trace and replay state preserve the joins, eval/reconstruction outputs show what can and cannot be reconstructed, and the v0.3 counterfactual branch composes policy, cost, drift, cache, and identity metadata under a stored decision id.
 
-## Counterfactual Policy Replay
+## Counterfactual Replay
 
-The unreleased v0.3 branch adds a counterfactual policy replay primitive over the v0.2 decision record. Given a stored `decision_id`, the replay operation reconstructs the recorded OPA input context from SQLite, substitutes a different policy bundle, re-runs OPA deterministically, and emits an original-vs-counterfactual decision diff that validates against [`replay/counterfactual_replay.v0.schema.json`](replay/counterfactual_replay.v0.schema.json).
+The v0.3 branch adds counterfactual replay primitives over the stored decision record. Given a stored `decision_id`, the policy replay path reconstructs the recorded OPA input context from SQLite, substitutes a different policy bundle, re-runs OPA deterministically, and emits an original-vs-counterfactual decision diff that validates against [`replay/counterfactual_replay.v0.schema.json`](replay/counterfactual_replay.v0.schema.json). Additional v0.3 paths record cost, reserve, five-surface drift, cache, and identity metadata under the same decision id.
 
 ```bash
 oep replay pder_code_review_read_diff_0001 \
@@ -41,11 +41,52 @@ The three demos all extend the existing deterministic code-review fixture:
 - budget-per-run cross-over: a synthetic runaway loop replayed under a stricter budget cap;
 - approval-per-step escalation: a workflow replayed under a stricter write-approval policy.
 
-Closest commercial precedents are [Styra DAS log-replay](https://docs.styra.com/das/observability-and-audit/decision-logs/log-replay) and [Permit.io Audit Log Replay](https://docs.permit.io/how-to/use-audit-logs/audit-log-replay). Both are useful authorization-domain precedents, but they are OPA/Rego-oriented, commercial-only products rather than an open-source, vendor-neutral, agent-runtime-decision-record-native reference implementation. The unreleased v0.3 branch demonstrates how the same replay shape can compose with agent runtime evidence records without claiming to replace those products.
+The v0.3 decision metadata is additive under `decision_id`: permission,
+cost, five-surface drift, cache, and identity sub-objects can be recorded
+under one decision without making old records invalid. See
+[Schema migration v0.3](docs/schema_migration_v0.3.md) for the field list
+and the backward-compatibility guarantee. The validation gates are exposed
+as separate Make targets:
 
-[Srinivasan, "A Methodology for Selecting and Composing Runtime Architecture Patterns for Production LLM Agents"](https://arxiv.org/abs/2605.20173) (arXiv:2605.20173, 19 May 2026) is the Q2 2026 academic anchor for the Replay Divergence Problem: LLM-based consumers of deterministic logs can diverge under model-version or prompt changes. The unreleased v0.3 counterfactual policy replay work is one inspectable mitigation framework for the policy-substitution axis; it does not re-execute the LLM call under substituted model weights.
+```bash
+make validate-5surface-diff
+make validate-cost-counterfactual
+make validate-reserve-commit-release
+make validate-cross-provider-drift
+make validate-cache-substitution
+make validate-identity-binding
+make validate-composite
+make validate-backward-compat
+```
 
-The Decision Evidence Maturity Model method specification that underlies the evidence-chain framing is my arXiv preprint at [arXiv:2605.04093](https://arxiv.org/abs/2605.04093) / DOI [`10.48550/arXiv.2605.04093`](https://doi.org/10.48550/arXiv.2605.04093). The unreleased v0.3 work implements the policy-substitution axis; the method paper formalizes a broader four-axis substitution model (policy + cost + drift + cache), while drift attribution and cache-substitution counterfactual demos are v0.4 candidate design space.
+The composed CLI paths keep deterministic and evaluative replay separate:
+
+```bash
+oep diff pder_a pder_b --surface model,policy,prompt,tool,corpus
+oep replay pder_code_review_read_diff_0001 \
+  --substitute policy=permissions/policy/tool_permissions.rego \
+  --substitute-budget per_run_cap_usd=0.005 \
+  --substitute-model bedrock:anthropic.claude-opus-4-6 \
+  --output-format json
+oep reserve --budget-cap-usd 10 \
+  --reservation bres_0001:6:4 \
+  --reservation bres_0002:8:7
+oep project --projected-cost-window 4:9 --budget-cap-usd 10 --approve
+```
+
+Policy, budget, reserve accounting, cache staleness, and config-surface
+diffs are deterministic replays over recorded fields. Cross-provider model
+substitution, cache substitution that implies a fresh model call, and
+pre-session projection are labelled `replay_class: evaluative` and should
+be read as counterfactual estimates.
+
+Closest commercial precedents are [Styra DAS log-replay](https://docs.styra.com/das/observability-and-audit/decision-logs/log-replay) and [Permit.io Audit Log Replay](https://docs.permit.io/how-to/use-audit-logs/audit-log-replay). Both are useful authorization-domain precedents, but they are OPA/Rego-oriented, commercial-only products rather than an open-source, vendor-neutral, agent-runtime-decision-record-native reference implementation. The v0.3 branch demonstrates how the same replay shape can compose with agent runtime evidence records without claiming to replace those products.
+
+[Srinivasan, "A Methodology for Selecting and Composing Runtime Architecture Patterns for Production LLM Agents"](https://arxiv.org/abs/2605.20173) (arXiv:2605.20173, 19 May 2026) is the Q2 2026 academic anchor for the Replay Divergence Problem: LLM-based consumers of deterministic logs can diverge under model-version or prompt changes. The v0.3 deterministic replay paths mitigate replay divergence for recorded policy, cost, cache-staleness, and config-surface fields. Cross-provider model substitution remains evaluative and does not re-execute the LLM call inside this reference implementation.
+
+The Decision Evidence Maturity Model method specification that underlies the evidence-chain framing is my arXiv preprint at [arXiv:2605.04093](https://arxiv.org/abs/2605.04093) / DOI [`10.48550/arXiv.2605.04093`](https://doi.org/10.48550/arXiv.2605.04093). The v0.3 work implements deterministic policy, cost, reserve-accounting, cache-staleness, and five-surface config replay over recorded fields. Model substitution and cache substitution that implies a fresh model call are labelled evaluative estimates.
+
+AAGATE ([arXiv:2510.25863](https://arxiv.org/abs/2510.25863)) is treated as complementary agent-governance work, not as a competitor. OEP's narrower scope is local evidence wiring and replay output over reference records. Reliability references such as Lusser's Law are used only as intuition for compounded workflow failure risk, not as empirical reliability proof for this repository.
 
 Boundary: this is not a production-grade replay engine, not a compliance certification, not a substitute for vendor authorization-replay products, and does not constitute legal or regulatory adequacy by itself.
 
@@ -83,16 +124,19 @@ directory such as `/usr/bin`, `/bin`, `/usr/sbin`, `/sbin`,
 `/usr/local/bin`, or `/opt/homebrew/bin`.
 Wrapper arguments are restricted to allow-listed options and strict
 values for the selected wrapper; positional alternate binary targets are
-rejected. Docker wrappers must use `docker run` and a constrained option
-set such as `--rm`, `--init`, `--network none`, `--user`, `--cpus`,
-`--memory`, `--pids-limit`, `--read-only`, and read-only `-v` /
-`--volume` bind mounts in `host_path:container_path:ro` form. When a
+rejected. Docker wrappers must use `docker run`, must include `--init`,
+and may only use a constrained option set such as `--rm`,
+`--network none`, `--user`, `--cpus`, `--memory`, `--pids-limit`,
+`--read-only`, and read-only `-v` / `--volume` bind mounts in
+`host_path:container_path:ro` form. When a
 read-only bind mount contains the policy bundle path, OEP rewrites the
 OPA `--data` argument to the corresponding container path.
 Wrappers must keep the OPA child in the spawned process group
 or forward termination signals so timeout cleanup can stop the full
-evaluation tree. If adapting the wrapper path for container execution,
-use an init or signal-forwarding entrypoint.
+evaluation tree.
+Set `OEP_SQLITE_BATCH_VARIABLE_LIMIT` to raise the replay reader batch
+limit above the default `900` on modern SQLite builds; values must stay
+between `1` and `32766`.
 The reference implementation invokes OPA through the CLI for each replay
 batch. Higher-volume deployments can preserve the same deterministic
 input/output contract while routing evaluation through a local OPA server
@@ -185,6 +229,7 @@ For the fastest read, open these in order:
 
 - [Architecture walkthrough](docs/architecture.md)
 - [Decision log](docs/decision_log.md)
+- [Schema migration v0.3](docs/schema_migration_v0.3.md)
 - [Public claims guide](docs/public_claims.md)
 - [Contributing guide](CONTRIBUTING.md)
 - [Bedrock translation](translations/bedrock/README.md)
@@ -258,7 +303,7 @@ The current inspectable chain is:
 release manifest -> agent-step event -> OPA-backed permission packet -> trace bundle -> SQLite replay state -> deterministic eval result -> reconstruction packet
 ```
 
-The unreleased v0.3 counterfactual branch starts from the stored permission decision and replay state, substitutes a policy bundle, re-derives the discrete decision, and emits a schema-validated original-vs-counterfactual diff. The primary eval is a deterministic smoke check over one synthetic fixture. The denied path demonstrates blocked replay readiness when OPA denies a tool call and no SQLite replay state is generated. Neither is a benchmark, model-quality claim, safety certification, or production monitoring result.
+The v0.3 counterfactual branch starts from the stored permission decision and replay state, substitutes policy, budget, model, cache, or config-surface inputs, and emits schema-validated attribution output. Deterministic surfaces replay over recorded fields; model and cache-fresh-call substitutions are labelled evaluative estimates. The primary eval is a deterministic smoke check over one synthetic fixture. The denied path demonstrates blocked replay readiness when OPA denies a tool call and no SQLite replay state is generated. Neither is a benchmark, model-quality claim, safety certification, or production monitoring result.
 
 ## Replayable Permission Trace Fields (v0.2)
 
@@ -315,6 +360,21 @@ source is version 1.0, released January 2023; the Generative AI Profile
 versioned as "1.1". Article numbers and titles refer to Regulation (EU)
 2024/1689 (the EU AI Act). The table is reference material, not a
 binding mapping.
+
+The v0.3 planning notes also track an education-only EU AI Act timing
+view for Articles 19, 26(6), 50, and 73. The source baseline is the
+European Commission AI Act timeline and FAQ plus the Council/Parliament
+Digital Omnibus political agreement announced on 7 May 2026; formal legal
+texts remain the controlling source.
+
+| Article | OEP-adjacent record topic | Timing note |
+|---|---|---|
+| 19 | Provider conformity-assessment evidence for high-risk systems | High-risk application dates are affected by the Digital Omnibus political agreement; planning notes should distinguish stand-alone and product-embedded high-risk systems. |
+| 26(6) | Deployer log/evidence retention for high-risk use | Treat as high-risk-system planning material, not as an OEP compliance assertion. |
+| 50 | Transparency records for AI-generated or AI-interaction disclosures | Transparency obligations are tracked separately from high-risk timing; some Article 50 timing details were addressed in the Digital Omnibus agreement. |
+| 73 | Serious-incident reporting evidence | Incident evidence examples here are educational only and do not implement statutory reporting. |
+
+Sources for the timing notes: [European Commission AI Act timeline](https://ai-act-service-desk.ec.europa.eu/en/ai-act/timeline/timeline-implementation-eu-ai-act), [European Commission AI Act FAQ](https://ai-act-service-desk.ec.europa.eu/en/faq), and [Council press release, 7 May 2026](https://www.consilium.europa.eu/en/press/press-releases/2026/05/07/artificial-intelligence-council-and-parliament-agree-to-simplify-and-streamline-rules/).
 
 **Retention.** This repository is a reference implementation. It does
 not retain runtime records on behalf of any deployer. Operators that

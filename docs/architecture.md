@@ -6,10 +6,10 @@ This repository demonstrates one source-inspectable operational-evidence chain f
 release manifest -> agent-step event -> OPA-backed permission packet -> trace bundle -> SQLite replay state -> deterministic eval result -> reconstruction packet
 ```
 
-The unreleased v0.3 branch adds a counterfactual path from the stored permission decision:
+The v0.3 branch adds counterfactual paths from the stored permission decision:
 
 ```text
-stored decision record + substituted policy bundle -> OPA re-evaluation -> original-vs-counterfactual decision diff
+stored decision record + substituted policy/budget/model/cache/config surface -> replay or estimate -> attributed counterfactual output
 ```
 
 ## What Runs
@@ -25,7 +25,8 @@ stored decision record + substituted policy bundle -> OPA re-evaluation -> origi
 7. Checks the deterministic eval result against generated state.
 8. Checks the trace bundle against all upstream artifacts.
 9. Checks the reconstruction packet against all upstream artifacts and SQLite state.
-10. Runs counterfactual replay validation and byte-identical determinism checks across the three counterfactual demos.
+10. Runs v0.3 surface, budget, reserve, model, cache, identity, composite, and backward-compatibility checks.
+11. Runs counterfactual replay validation and byte-identical determinism checks across the three counterfactual demos.
 
 The generated SQLite file is `demo/state/code_review_agent.sqlite`. Counterfactual replay outputs are generated under `demo/counterfactual/`. They are intentionally ignored because they are reproducible local state and output artifacts.
 
@@ -47,6 +48,7 @@ The generated SQLite file is `demo/state/code_review_agent.sqlite`. Counterfactu
 | Counterfactual policy bundles | `permissions/policy/counterfactual/*.rego` | Alternative OPA policies applied retroactively to stored decision records. |
 | Counterfactual demo runner | `demo/src/oep_demo/counterfactual.py` | Generates the compound reliability, budget-per-run, and approval escalation demos over the same code-review fixture. |
 | Counterfactual checker | `replay/scripts/check_counterfactual_replay.py` | Validates the demo outputs and checks byte-identical determinism across runs. |
+| v0.3 feature checker | `replay/scripts/check_v03_features.py` | Validates five-surface diff, cost replay, reserve accounting, cross-provider markers, cache substitution, identity binding, composite replay, and backward compatibility. |
 
 ## Join Keys
 
@@ -63,7 +65,7 @@ The generated SQLite file is `demo/state/code_review_agent.sqlite`. Counterfactu
 
 ## Counterfactual Policy Replay
 
-The counterfactual replay operation starts from a stored v0.2 decision record. `counterfactual_replay_decision(...)` reconstructs the OPA input context from SQLite, injects any captured `nd_builtin_cache`, evaluates a substituted Rego policy bundle with `opa eval`, and returns a schema-validated record containing:
+The counterfactual replay operation starts from a stored decision record. `counterfactual_replay_decision(...)` reconstructs the OPA input context from SQLite, injects any captured `nd_builtin_cache`, evaluates a substituted Rego policy bundle with `opa eval`, and returns a schema-validated record containing:
 
 - the original decision snapshot;
 - the counterfactual decision snapshot;
@@ -71,6 +73,13 @@ The counterfactual replay operation starts from a stored v0.2 decision record. `
 - replay metadata, including `OEP_REPLAY_MODE=counterfactual` and the explicitly excluded wall-clock timestamp field.
 
 The replay operation reads the existing SQLite store. It does not mutate replay state, call a live model, call a vendor API, or substitute model weights.
+
+`replay_decision_with_substitutions(...)` composes the v0.3 surfaces under
+the same decision id. Policy, budget, reserve accounting, cache-staleness,
+and five-surface config diffs are deterministic replays over recorded
+fields. Cross-provider model substitution, cache substitution that implies
+a fresh model call, and pre-session projection are labelled
+`replay_class: evaluative`.
 
 OPA is executed as a local subprocess with a bounded timeout. This reference
 does not impose portable OS-level memory or CPU-quota limits on the `opa`
@@ -102,7 +111,7 @@ step and treats later OPA evaluations as hypothetical slices over the
 original recorded context, not as evidence that those later actions
 would have occurred after the counterfactual denial.
 
-The closest commercial precedents are [Styra DAS log-replay](https://docs.styra.com/das/observability-and-audit/decision-logs/log-replay) and [Permit.io Audit Log Replay](https://docs.permit.io/how-to/use-audit-logs/audit-log-replay). OEP uses them as OPA/Rego-oriented, commercial-only authorization-domain precedents, not as products to replace. [Srinivasan, "A Methodology for Selecting and Composing Runtime Architecture Patterns for Production LLM Agents"](https://arxiv.org/abs/2605.20173) names replay divergence as a failure mode for LLM consumers of deterministic logs; the unreleased v0.3 branch demonstrates one policy-substitution mitigation surface inside this repository's bounded evidence chain.
+The closest commercial precedents are [Styra DAS log-replay](https://docs.styra.com/das/observability-and-audit/decision-logs/log-replay) and [Permit.io Audit Log Replay](https://docs.permit.io/how-to/use-audit-logs/audit-log-replay). OEP uses them as OPA/Rego-oriented, commercial-only authorization-domain precedents, not as products to replace. [Srinivasan, "A Methodology for Selecting and Composing Runtime Architecture Patterns for Production LLM Agents"](https://arxiv.org/abs/2605.20173) names replay divergence as a failure mode for LLM consumers of deterministic logs; the v0.3 branch demonstrates deterministic mitigation surfaces for recorded policy, cost, cache-staleness, and config metadata inside this repository's bounded evidence chain.
 
 ## Evidence Boundary
 

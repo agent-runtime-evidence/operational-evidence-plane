@@ -12,6 +12,8 @@ Use this file before README, article, or external write-up wording changes.
 - Shows a small local chain from release manifest to reconstruction packet.
 - Demonstrates a counterfactual policy replay primitive over stored decision records.
 - Shows one inspectable policy-substitution replay path with byte-identical generated artifacts.
+- Distinguishes deterministic replay over recorded fields from evaluative counterfactual estimates.
+- Shows additive v0.3 metadata surfaces for cost, five-surface drift, cache provenance, and identity binding.
 - Complements vendor-native agent versions, prompt registries, policy engines, telemetry specs, and communication protocols.
 - Complements vendor-native authorization-replay products such as Styra DAS and Permit.io.
 
@@ -41,7 +43,10 @@ Use this file before README, article, or external write-up wording changes.
 - "Replaces Styra DAS, Permit.io, or OPA decision logs."
 - "Replaces Bedrock, LangSmith, OTel, MCP, A2A, OPA, or cloud-native release tools."
 - "Proves agent safety."
+- "MCP formally adopts ID-JAG."
+- "OEP cache fields are OpenTelemetry standard fields."
+- "Evaluative model substitution shows what would have happened."
 
 ## Safer Positioning Paragraph
 
-This repository is an open, vendor-neutral reference implementation for binding and reconstructing the operational evidence of agentic systems across release-time and runtime layers. It extends patterns already visible in vendor-native agent versions, prompt registries, policy engines, authorization-replay products, and telemetry specs, but does not replace them and does not claim standardization or production readiness. The safer novelty claim is that it demonstrates one inspectable way to stitch adjacent slices together, including one policy-substitution counterfactual replay path over stored decision records.
+This repository is an open, vendor-neutral reference implementation for binding and reconstructing the operational evidence of agentic systems across release-time and runtime layers. It extends patterns already visible in vendor-native agent versions, prompt registries, policy engines, authorization-replay products, and telemetry specs, but does not replace them and does not claim standardization or production readiness. The safer novelty claim is that it demonstrates one inspectable way to stitch adjacent slices together, including deterministic policy, cost, and surface-diff replay over stored decision records while labelling model/cache-fresh-call substitutions as evaluative estimates.

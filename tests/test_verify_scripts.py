@@ -41,6 +41,7 @@ VERIFY_SCRIPTS = (
     ("traces/scripts/check_eval_result.py", "Eval result checks passed"),
     ("traces/scripts/check_operational_trace.py", "Trace bundle checks passed"),
     ("playbooks/scripts/check_reconstruction_packet.py", "Reconstruction packet checks passed"),
+    ("replay/scripts/check_v03_features.py", "v0.3 feature checks passed"),
     ("translations/bedrock/scripts/check_bedrock_translation.py", "Bedrock translation checks passed"),
     ("integrations/mcp/scripts/to_oep_permission.py", "MCP -> OEP permission packet projection checks passed"),
     ("scripts/check_public_docs.py", "Public documentation checks passed"),

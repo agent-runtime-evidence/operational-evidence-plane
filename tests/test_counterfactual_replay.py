@@ -18,8 +18,16 @@ from oep_demo.counterfactual import (
     run_budget_per_run_counterfactual,
     run_compound_reliability_counterfactual,
 )
-from oep_permissions import ReplayError, counterfactual_replay_decision
+from oep_permissions import (
+    ReplayError,
+    counterfactual_replay_decision,
+    diff_decision_surfaces,
+    project_pre_session_cost,
+    replay_decision_with_substitutions,
+    simulate_reserve_commit_release,
+)
 
+import oep_verify.cli as cli_module
 from oep_verify.cli import main as cli_main
 from oep_verify.verify_support import validate_json_schema
 
@@ -159,6 +167,251 @@ def test_counterfactual_replay_cli_outputs_json_and_human(
     human_output = capsys.readouterr().out
     assert "replay_mode: counterfactual" in human_output
     assert "counterfactual: deny" in human_output
+
+
+def test_v03_cli_outputs_composed_replay_and_budget_commands(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    state_path = tmp_path / "code_review_agent.sqlite"
+    run_demo(state_path)
+
+    cli_main(
+        [
+            "replay",
+            DECISION_ID,
+            "--state-path",
+            str(state_path),
+            "--substitute",
+            "prompt=code-review-agent-prompt@0.2.0,tool=code-review-tool-registry@0.2.0",
+            "--substitute-budget",
+            "per_run_cap_usd=0.005",
+            "--substitute-model",
+            "bedrock:anthropic.claude-opus-4-6",
+            "--output-format",
+            "human",
+            "--replay-timestamp-utc",
+            FIXED_REPLAY_TIMESTAMP,
+            "--strip-exclusions",
+        ]
+    )
+    replay_human = capsys.readouterr().out
+    assert "replay_class: evaluative" in replay_human
+    assert "counterfactual: deny" in replay_human
+
+    cli_main(
+        [
+            "diff",
+            DECISION_ID,
+            DECISION_ID,
+            "--state-path",
+            str(state_path),
+            "--surface",
+            "model,policy",
+            "--output-format",
+            "human",
+        ]
+    )
+    diff_human = capsys.readouterr().out
+    assert "replay_class: deterministic" in diff_human
+    assert "changed_surfaces: []" in diff_human
+
+    cli_main(
+        [
+            "reserve",
+            "--budget-cap-usd",
+            "10",
+            "--reservation",
+            "bres_0001:6:4",
+            "--reservation",
+            "bres_0002:8:7",
+            "--output-format",
+            "human",
+        ]
+    )
+    reserve_output = json.loads(capsys.readouterr().out)
+    assert reserve_output["first_denied_reservation_id"] == "bres_0002"
+
+    cli_main(
+        [
+            "project",
+            "--projected-cost-window",
+            "4:9",
+            "--budget-cap-usd",
+            "10",
+            "--approve",
+            "--output-format",
+            "json",
+        ]
+    )
+    projection = json.loads(capsys.readouterr().out)
+    assert projection["replay_class"] == "evaluative"
+    assert projection["approval_outcome"] == "approved"
+
+
+def test_v03_replay_rejects_invalid_inputs_and_reports_missing_surfaces(tmp_path: Path) -> None:
+    state_path = tmp_path / "code_review_agent.sqlite"
+    run_demo(state_path)
+
+    with pytest.raises(ReplayError, match="unknown diff surface"):
+        diff_decision_surfaces(state_path, DECISION_ID, DECISION_ID, surfaces=("missing",))
+
+    with pytest.raises(ReplayError, match="unknown substitution surface"):
+        replay_decision_with_substitutions(state_path, DECISION_ID, substitutions={"unknown": "value"})
+
+    with pytest.raises(ReplayError, match="must be non-empty"):
+        replay_decision_with_substitutions(state_path, DECISION_ID, substitutions={"prompt": " "})
+
+    with pytest.raises(ReplayError, match="provider:model_version"):
+        replay_decision_with_substitutions(state_path, DECISION_ID, model_substitute="missing-separator")
+
+    with pytest.raises(ReplayError, match="numeric cap"):
+        replay_decision_with_substitutions(state_path, DECISION_ID, budget_policy="strictish")
+
+    with pytest.raises(ReplayError, match="embedding_version=<version>"):
+        replay_decision_with_substitutions(state_path, DECISION_ID, cache_policy="embedding_version=")
+
+    with pytest.raises(ReplayError, match="staleness"):
+        replay_decision_with_substitutions(state_path, DECISION_ID, cache_policy="other-cache-policy")
+
+    with pytest.raises(ReplayError, match="budget_cap_usd"):
+        simulate_reserve_commit_release([], budget_cap_usd=-1)
+
+    with pytest.raises(ReplayError, match="budget_cap_source"):
+        simulate_reserve_commit_release([], budget_cap_usd=1, budget_cap_source="per_org")
+
+    with pytest.raises(ReplayError, match="budget_reservation_id"):
+        simulate_reserve_commit_release(
+            [{"reservation_estimated_cost_usd": 1, "reservation_committed_cost_usd": 1}],
+            budget_cap_usd=1,
+        )
+
+    with pytest.raises(ReplayError, match="committed cost"):
+        simulate_reserve_commit_release(
+            [
+                {
+                    "budget_reservation_id": "bres_bad",
+                    "reservation_estimated_cost_usd": 1,
+                    "reservation_committed_cost_usd": -1,
+                }
+            ],
+            budget_cap_usd=1,
+        )
+
+    with pytest.raises(ReplayError, match="non-negative"):
+        project_pre_session_cost(
+            projected_min_usd=-1,
+            projected_max_usd=1,
+            budget_cap_usd=1,
+            approver_identity={"type": "human", "id": "human", "display_name": "Human"},
+            approve=True,
+        )
+
+    with pytest.raises(ReplayError, match="must not exceed"):
+        project_pre_session_cost(
+            projected_min_usd=2,
+            projected_max_usd=1,
+            budget_cap_usd=3,
+            approver_identity={"type": "human", "id": "human", "display_name": "Human"},
+            approve=True,
+        )
+
+    packet = _sqlite_payload(
+        state_path,
+        "SELECT payload_json FROM permissions WHERE packet_id = ?",
+        (DECISION_ID,),
+    )
+    packet.pop("decision_id")
+    _sqlite_update_payload(
+        state_path,
+        "UPDATE permissions SET payload_json = ? WHERE packet_id = ?",
+        packet,
+        (DECISION_ID,),
+    )
+    missing_budget = replay_decision_with_substitutions(
+        state_path,
+        DECISION_ID,
+        budget_policy="per_run_cap_usd=1",
+        replay_timestamp_utc=FIXED_REPLAY_TIMESTAMP,
+    )
+    assert missing_budget["diff"]["budget_delta"]["termination_code"] == "BUDGET_SURFACE_NOT_RECORDED"
+
+
+def test_v03_cli_rejects_invalid_inputs(tmp_path: Path) -> None:
+    state_path = tmp_path / "code_review_agent.sqlite"
+    run_demo(state_path)
+
+    with pytest.raises(SystemExit, match="--field is only supported"):
+        cli_main(
+            [
+                "replay",
+                DECISION_ID,
+                "--state-path",
+                str(state_path),
+                "--field",
+                "decision_id",
+                "--substitute-budget",
+                "per_run_cap_usd=1",
+            ]
+        )
+
+    with pytest.raises(SystemExit, match="--field is only supported"):
+        cli_main(
+            [
+                "replay",
+                DECISION_ID,
+                "--state-path",
+                str(state_path),
+                "--field",
+                "decision_id",
+                "--counterfactual",
+                "--policy-bundle",
+                str(ROOT / "permissions" / "policy" / "tool_permissions.rego"),
+            ]
+        )
+
+    with pytest.raises(SystemExit, match="no recorded decision"):
+        cli_main(["replay", "pder_missing", "--state-path", str(state_path)])
+
+    with pytest.raises(SystemExit, match="no recorded decision"):
+        cli_main(["diff", DECISION_ID, "pder_missing", "--state-path", str(state_path)])
+
+    with pytest.raises(SystemExit, match="budget_cap_usd"):
+        cli_main(["reserve", "--budget-cap-usd", "-1", "--reservation", "bres_0001:1:1"])
+
+    with pytest.raises(SystemExit, match="must not exceed"):
+        cli_main(["project", "--projected-cost-window", "2:1", "--budget-cap-usd", "3"])
+
+    with pytest.raises(SystemExit, match="key=value"):
+        cli_main(["replay", DECISION_ID, "--state-path", str(state_path), "--substitute", "bad"])
+
+    with pytest.raises(SystemExit, match="id:estimated_usd:committed_usd"):
+        cli_main(["reserve", "--budget-cap-usd", "1", "--reservation", "bad"])
+
+    with pytest.raises(SystemExit, match="must be numeric"):
+        cli_main(["reserve", "--budget-cap-usd", "1", "--reservation", "bres:a:1"])
+
+    with pytest.raises(SystemExit, match="min_usd:max_usd"):
+        cli_main(["project", "--projected-cost-window", "bad", "--budget-cap-usd", "1"])
+
+    with pytest.raises(SystemExit, match="values must be numeric"):
+        cli_main(["project", "--projected-cost-window", "a:b", "--budget-cap-usd", "1"])
+
+
+def test_cli_helper_defensive_branches() -> None:
+    assert cli_module._parse_substitution_args(None) == {}
+    assert cli_module._parse_substitution_args([",prompt=next"]) == {"prompt": "next"}
+    assert cli_module._strip_determinism_exclusions(cast(Any, [])) == []
+    assert cli_module._strip_determinism_exclusions({"replay_metadata": {"determinism_exclusions": "bad"}}) == {
+        "replay_metadata": {"determinism_exclusions": "bad"}
+    }
+    nested = {
+        "replay_metadata": {"determinism_exclusions": ["bad..path", "missing.child", "parent.child"]},
+        "parent": "not-an-object",
+    }
+    assert cli_module._strip_determinism_exclusions(nested)["parent"] == "not-an-object"
+    with pytest.raises(SystemExit, match="unknown output format"):
+        cli_module._print_record({}, "yaml")
 
 
 def test_counterfactual_replay_cli_rejects_invalid_mode_and_missing_bundle(
@@ -1123,19 +1376,27 @@ def test_opa_command_wrapper_rejects_positional_binary_arguments(
     volume_source = tmp_path / "policy"
     monkeypatch.setenv(
         replay_module.OEP_OPA_COMMAND_WRAPPER_ENV,
-        f"docker run --rm --read-only -v {volume_source}:/policy:ro opa:1.7.1",
+        f"docker run --rm --read-only --init -v {volume_source}:/policy:ro opa:1.7.1",
     )
     assert opa_command(["opa", "eval"]) == [
         "/usr/bin/docker",
         "run",
         "--rm",
         "--read-only",
+        "--init",
         "-v",
         f"{volume_source}:/policy:ro",
         "opa:1.7.1",
         "opa",
         "eval",
     ]
+
+    monkeypatch.setenv(
+        replay_module.OEP_OPA_COMMAND_WRAPPER_ENV,
+        "docker run --rm --network none opa:1.7.1",
+    )
+    with pytest.raises(ReplayError, match="docker wrappers must include --init"):
+        opa_command(["opa", "eval"])
 
     monkeypatch.setenv(
         replay_module.OEP_OPA_COMMAND_WRAPPER_ENV,
@@ -1176,7 +1437,7 @@ def test_opa_policy_bundle_data_path_uses_docker_volume_target(
 
     monkeypatch.setenv(
         replay_module.OEP_OPA_COMMAND_WRAPPER_ENV,
-        f"docker run --rm --volume={policy_dir}:/policy:ro opa:1.7.1",
+        f"docker run --rm --init --volume={policy_dir}:/policy:ro opa:1.7.1",
     )
 
     assert data_path(policy_path) == "/policy/counterfactual/policy.rego"
@@ -1345,7 +1606,7 @@ def test_opa_termination_falls_back_to_direct_kill(
     assert process.killed is True
 
 
-def test_decision_id_batch_parameters_use_fixed_placeholder_buckets() -> None:
+def test_decision_id_batch_parameters_use_fixed_placeholder_buckets(monkeypatch: pytest.MonkeyPatch) -> None:
     padded_parameters = cast(
         Callable[[list[str]], tuple[str | None, ...]],
         vars(replay_module)["_padded_decision_id_parameters"],
@@ -1358,6 +1619,13 @@ def test_decision_id_batch_parameters_use_fixed_placeholder_buckets() -> None:
     assert padded_parameters(["a", "b", "c"]) == ("a", "b", "c", None)
     assert placeholders(3) == "?,?,?,?"
     assert len(padded_parameters([str(index) for index in range(513)])) == 900
+
+    monkeypatch.setenv(replay_module.OEP_SQLITE_BATCH_VARIABLE_LIMIT_ENV, "1024")
+    assert len(padded_parameters([str(index) for index in range(513)])) == 1024
+
+    monkeypatch.setenv(replay_module.OEP_SQLITE_BATCH_VARIABLE_LIMIT_ENV, "0")
+    with pytest.raises(ReplayError, match=replay_module.OEP_SQLITE_BATCH_VARIABLE_LIMIT_ENV):
+        placeholders(1)
 
 
 def test_batch_reconstruction_caches_trace_and_manifest_payloads(

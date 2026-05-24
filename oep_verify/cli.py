@@ -29,6 +29,9 @@ Examples:
   oep replay pder_code_review_read_diff_0001 --counterfactual \\
       --policy-bundle permissions/policy/tool_permissions.rego \\
       --output-format json
+
+  # Diff the five v0.3 drift surfaces between two recorded decisions.
+  oep diff pder_a pder_b --surface model,policy,prompt,tool,corpus
 """
 
 _REPLAY_EPILOG = """\
@@ -56,6 +59,12 @@ Examples:
   oep replay pder_code_review_read_diff_0001 --counterfactual \\
       --policy-bundle permissions/policy/tool_permissions.rego \\
       --strip-exclusions --output-format jsonl
+
+  # Compose v0.3 substitutions over a recorded decision.
+  oep replay pder_code_review_read_diff_0001 \\
+      --substitute policy=permissions/policy/tool_permissions.rego \\
+      --substitute-budget per_run_cap_usd=0.005 \\
+      --substitute-model bedrock:anthropic.claude-opus-4-6
 
 Denied decisions:
   Denied tool calls do not generate SQLite replay state by design — the
@@ -162,14 +171,121 @@ def _build_parser() -> argparse.ArgumentParser:
             "replay_metadata.determinism_exclusions before printing."
         ),
     )
+    replay_parser.add_argument(
+        "--substitute",
+        action="append",
+        default=None,
+        help=(
+            "v0.3 surface substitution in key=value form. Supported keys: "
+            "model, policy, prompt, tool, corpus. May be repeated or comma-separated."
+        ),
+    )
+    replay_parser.add_argument(
+        "--substitute-budget",
+        default=None,
+        help="v0.3 budget substitution policy, for example per_run_cap_usd=5000.",
+    )
+    replay_parser.add_argument(
+        "--substitute-model",
+        default=None,
+        help="v0.3 cross-provider model substitution in provider:model_version form.",
+    )
+    replay_parser.add_argument(
+        "--substitute-cache-policy",
+        default=None,
+        help="v0.3 cache policy substitution: staleness, strict_staleness, or embedding_version=<version>.",
+    )
+
+    diff_parser = subparsers.add_parser(
+        "diff",
+        help="Diff v0.3 model/policy/prompt/tool/corpus surfaces between two recorded decisions.",
+    )
+    diff_parser.add_argument("decision_id_a")
+    diff_parser.add_argument("decision_id_b")
+    diff_parser.add_argument("--state-path", type=Path, default=None)
+    diff_parser.add_argument(
+        "--surface",
+        action="append",
+        default=None,
+        help="Surface list to diff: model,policy,prompt,tool,corpus. May be repeated.",
+    )
+    diff_parser.add_argument("--output-format", choices=("json", "jsonl", "human"), default="json")
+
+    reserve_parser = subparsers.add_parser(
+        "reserve",
+        help="Simulate a deterministic reserve -> commit -> release budget lifecycle.",
+    )
+    reserve_parser.add_argument("--budget-cap-usd", type=float, required=True)
+    reserve_parser.add_argument(
+        "--budget-cap-source",
+        choices=("per_session", "per_tenant", "per_agent"),
+        default="per_session",
+    )
+    reserve_parser.add_argument(
+        "--reservation",
+        action="append",
+        required=True,
+        help="Reservation triple id:estimated_usd:committed_usd. May be repeated.",
+    )
+    reserve_parser.add_argument("--output-format", choices=("json", "jsonl", "human"), default="json")
+
+    project_parser = subparsers.add_parser(
+        "project",
+        help="Record a pre-session projected-cost approval gate.",
+    )
+    project_parser.add_argument(
+        "--projected-cost-window",
+        required=True,
+        help="Projected cost window as min_usd:max_usd.",
+    )
+    project_parser.add_argument("--budget-cap-usd", type=float, required=True)
+    project_parser.add_argument("--approver-id", default="human_reference_budget_owner")
+    project_parser.add_argument("--approver-name", default="reference budget owner")
+    project_parser.add_argument("--approve", action="store_true")
+    project_parser.add_argument("--output-format", choices=("json", "jsonl", "human"), default="json")
     return parser
 
 
 def _replay(args: argparse.Namespace) -> None:
     from oep_demo.paths import STATE_PATH as DEFAULT_STATE_PATH
-    from oep_permissions.replay import ReplayError, counterfactual_replay_decision, reconstruct_decision
+    from oep_permissions.replay import (
+        ReplayError,
+        counterfactual_replay_decision,
+        reconstruct_decision,
+        replay_decision_with_substitutions,
+    )
 
     state_path = args.state_path if args.state_path is not None else DEFAULT_STATE_PATH
+    has_v03_substitution = any(
+        value is not None
+        for value in (
+            args.substitute,
+            args.substitute_budget,
+            args.substitute_model,
+            args.substitute_cache_policy,
+        )
+    )
+    if has_v03_substitution:
+        if args.field:
+            raise SystemExit("--field is only supported for read-only replay output")
+        try:
+            record = replay_decision_with_substitutions(
+                state_path,
+                args.decision_id,
+                substitutions=_parse_substitution_args(args.substitute),
+                policy_bundle_path=args.policy_bundle,
+                budget_policy=args.substitute_budget,
+                model_substitute=args.substitute_model,
+                cache_policy=args.substitute_cache_policy,
+                replay_timestamp_utc=args.replay_timestamp_utc,
+            )
+        except ReplayError as exc:
+            raise SystemExit(str(exc)) from exc
+        if args.strip_exclusions:
+            record = _strip_determinism_exclusions(record)
+        _print_record(record, args.output_format or "json")
+        return
+
     replay_mode = _replay_mode(args.counterfactual)
     if replay_mode == "counterfactual":
         if args.field:
@@ -214,6 +330,58 @@ def _replay(args: argparse.Namespace) -> None:
     _print_record(record_dict, args.output_format or "json")
 
 
+def _diff(args: argparse.Namespace) -> None:
+    from oep_demo.paths import STATE_PATH as DEFAULT_STATE_PATH
+    from oep_permissions.replay import ReplayError, diff_decision_surfaces
+
+    state_path = args.state_path if args.state_path is not None else DEFAULT_STATE_PATH
+    try:
+        record = diff_decision_surfaces(
+            state_path,
+            args.decision_id_a,
+            args.decision_id_b,
+            surfaces=args.surface,
+        )
+    except ReplayError as exc:
+        raise SystemExit(str(exc)) from exc
+    _print_record(record, args.output_format)
+
+
+def _reserve(args: argparse.Namespace) -> None:
+    from oep_permissions.replay import ReplayError, simulate_reserve_commit_release
+
+    try:
+        record = simulate_reserve_commit_release(
+            _parse_reservations(args.reservation),
+            budget_cap_usd=args.budget_cap_usd,
+            budget_cap_source=args.budget_cap_source,
+        )
+    except ReplayError as exc:
+        raise SystemExit(str(exc)) from exc
+    _print_record(record, args.output_format)
+
+
+def _project(args: argparse.Namespace) -> None:
+    from oep_permissions.replay import ReplayError, project_pre_session_cost
+
+    try:
+        projected_min, projected_max = _parse_cost_window(args.projected_cost_window)
+        record = project_pre_session_cost(
+            projected_min_usd=projected_min,
+            projected_max_usd=projected_max,
+            budget_cap_usd=args.budget_cap_usd,
+            approver_identity={
+                "type": "human",
+                "id": args.approver_id,
+                "display_name": args.approver_name,
+            },
+            approve=args.approve,
+        )
+    except ReplayError as exc:
+        raise SystemExit(str(exc)) from exc
+    _print_record(record, args.output_format)
+
+
 def _replay_mode(counterfactual_flag: bool) -> str:
     if counterfactual_flag:
         return "counterfactual"
@@ -234,6 +402,53 @@ def _print_record(record: dict[str, Any], output_format: str) -> None:
         _print_human_record(record)
         return
     raise SystemExit(f"unknown output format: {output_format}")
+
+
+def _parse_substitution_args(raw_values: list[str] | None) -> dict[str, str]:
+    substitutions: dict[str, str] = {}
+    if not raw_values:
+        return substitutions
+    for raw_value in raw_values:
+        for item in raw_value.split(","):
+            if not item.strip():
+                continue
+            key, separator, value = item.partition("=")
+            if not separator:
+                raise SystemExit("--substitute values must use key=value")
+            substitutions[key.strip()] = value.strip()
+    return substitutions
+
+
+def _parse_reservations(raw_values: list[str]) -> list[dict[str, float | str]]:
+    reservations: list[dict[str, float | str]] = []
+    for raw_value in raw_values:
+        reservation_id, separator, rest = raw_value.partition(":")
+        estimated, second_separator, committed = rest.partition(":")
+        if not separator or not second_separator or not reservation_id:
+            raise SystemExit("--reservation must use id:estimated_usd:committed_usd")
+        try:
+            estimated_cost = float(estimated)
+            committed_cost = float(committed)
+        except ValueError as exc:
+            raise SystemExit("--reservation estimated and committed values must be numeric") from exc
+        reservations.append(
+            {
+                "budget_reservation_id": reservation_id,
+                "reservation_estimated_cost_usd": estimated_cost,
+                "reservation_committed_cost_usd": committed_cost,
+            }
+        )
+    return reservations
+
+
+def _parse_cost_window(raw_value: str) -> tuple[float, float]:
+    projected_min, separator, projected_max = raw_value.partition(":")
+    if not separator:
+        raise SystemExit("--projected-cost-window must use min_usd:max_usd")
+    try:
+        return float(projected_min), float(projected_max)
+    except ValueError as exc:
+        raise SystemExit("--projected-cost-window values must be numeric") from exc
 
 
 def _strip_determinism_exclusions(record: dict[str, Any]) -> dict[str, Any]:
@@ -264,6 +479,16 @@ def _remove_dotted_path(record: dict[str, Any], dotted_path: str) -> None:
 
 
 def _print_human_record(record: dict[str, Any]) -> None:
+    if record.get("schema_version") == "oep.surface_diff.v0":
+        print(f"replay_class: {record.get('replay_class')}")
+        print(f"before: {_json_object(record.get('decision_ids')).get('before')}")
+        print(f"after: {_json_object(record.get('decision_ids')).get('after')}")
+        print(f"changed_surfaces: {json.dumps(record.get('changed_surfaces'), sort_keys=True)}")
+        print(f"absent_surfaces: {json.dumps(record.get('absent_surfaces'), sort_keys=True)}")
+        return
+    if record.get("schema_version") in {"oep.reserve_commit_release.v0", "oep.pre_session_projection.v0"}:
+        print(json.dumps(record, indent=2, sort_keys=True))
+        return
     if record.get("replay_mode") == "counterfactual":
         original = _json_object(record.get("original"))
         counterfactual = _json_object(record.get("counterfactual"))
@@ -276,6 +501,8 @@ def _print_human_record(record: dict[str, Any]) -> None:
         print(f"decision_changed: {diff.get('decision_changed')}")
         print(f"rationale_changed: {diff.get('rationale_changed')}")
         print(f"nd_builtin_cache_entries_used: {metadata.get('nd_builtin_cache_entries_used')}")
+        if metadata.get("replay_class") is not None:
+            print(f"replay_class: {metadata.get('replay_class')}")
         print(f"replay_timestamp_utc: {metadata.get('replay_timestamp_utc')}")
         return
 
@@ -298,6 +525,15 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     if args.command == "replay":
         _replay(args)
+        return
+    if args.command == "diff":
+        _diff(args)
+        return
+    if args.command == "reserve":
+        _reserve(args)
+        return
+    if args.command == "project":
+        _project(args)
         return
 
     parser.error(f"unknown command: {args.command}")

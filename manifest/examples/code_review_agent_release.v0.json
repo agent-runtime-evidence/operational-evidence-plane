@@ -72,7 +72,7 @@
     },
     "tool_schema": {
       "binding_status": "resolved",
-      "digest": "sha256:63c0da70ddd0208115499b06d826262b7dab23eb82f04d7214f7b5f89a3c08ef",
+      "digest": "sha256:73f21ab2d6330c175e6f6bc899298ab02a24c9f93744cdcd1d78327b500efb3b",
       "evidence_role": "Binds the allowed tool/action schema for runtime permission packets.",
       "layer_type": "tool_schema",
       "name": "code-review-agent-tool-registry",

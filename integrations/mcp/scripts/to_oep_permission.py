@@ -5,7 +5,7 @@ This adapter is documentation and mapping data, not a replacement for
 MCP, OPA, LangSmith, or Bedrock. It shows one inspectable way to
 translate a JSON-RPC `tools/call` envelope into the OEP
 `tool_permission_packet.v0` schema, including the v0.2 replayable
-permission trace fields.
+permission trace fields and optional v0.3 decision metadata.
 
 Usage:
     python integrations/mcp/scripts/to_oep_permission.py \\
@@ -86,6 +86,7 @@ def project_to_oep_permission(mcp_event: dict[str, Any]) -> dict[str, Any]:
         "model_alias": model_binding.get("alias"),
         "resolved_model_version": model_binding.get("resolved_version"),
         "model_provider": model_binding.get("provider"),
+        "decision_id": session.get("decision_id"),
         "links": _required(result.get("links"), "response.result.links"),
         "claim_boundary": _required(session.get("claim_boundary"), "session.claim_boundary"),
     }

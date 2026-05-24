@@ -115,6 +115,33 @@
             {"type": "null"},
             {"$ref": "#/$defs/approval_delta"}
           ]
+        },
+        "surface_delta": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/surface_delta"}
+          ]
+        },
+        "cache_delta": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/cache_delta"}
+          ]
+        },
+        "model_delta": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/model_delta"}
+          ]
+        },
+        "identity_delta": {
+          "oneOf": [
+            {"type": "null"},
+            {
+              "type": "object",
+              "additionalProperties": true
+            }
+          ]
         }
       }
     },
@@ -212,6 +239,104 @@
         }
       }
     },
+    "surface_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["changed_surfaces", "absent_surfaces", "surfaces"],
+      "properties": {
+        "changed_surfaces": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["model", "policy", "prompt", "tool", "corpus"]},
+          "uniqueItems": true
+        },
+        "absent_surfaces": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["model", "policy", "prompt", "tool", "corpus"]},
+          "uniqueItems": true
+        },
+        "surfaces": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "model": {"$ref": "#/$defs/surface_change"},
+            "policy": {"$ref": "#/$defs/surface_change"},
+            "prompt": {"$ref": "#/$defs/surface_change"},
+            "tool": {"$ref": "#/$defs/surface_change"},
+            "corpus": {"$ref": "#/$defs/surface_change"}
+          }
+        }
+      }
+    },
+    "surface_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {"type": "string", "enum": ["changed", "unchanged", "not_recorded"]},
+        "before_version": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        },
+        "after_version": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        },
+        "change_class": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "enum": ["alias_resolution", "policy_update", "prompt_edit", "tool_added_removed", "corpus_indexed"]}
+          ]
+        },
+        "attribution_confidence": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "number", "minimum": 0, "maximum": 1}
+          ]
+        }
+      }
+    },
+    "cache_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cache_policy", "would_reject_cached_hit", "fresh_call_required"],
+      "properties": {
+        "cache_policy": {"type": "string", "minLength": 1},
+        "would_reject_cached_hit": {"type": "boolean"},
+        "fresh_call_required": {"type": "boolean"},
+        "rejection_reason": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        }
+      }
+    },
+    "model_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["original_provider", "original_model_version", "substituted_provider", "substituted_model_version", "counterfactual_label"],
+      "properties": {
+        "original_provider": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        },
+        "original_model_version": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        },
+        "substituted_provider": {"type": "string", "minLength": 1},
+        "substituted_model_version": {"type": "string", "minLength": 1},
+        "counterfactual_label": {"type": "string", "const": "counterfactual estimate"}
+      }
+    },
     "replay_metadata": {
       "type": "object",
       "additionalProperties": false,
@@ -242,6 +367,15 @@
           "contains": {
             "const": "replay_metadata.replay_timestamp_utc"
           }
+        },
+        "replay_class": {
+          "type": "string",
+          "enum": ["deterministic", "evaluative"]
+        },
+        "substituted_surfaces": {
+          "type": "object",
+          "propertyNames": {"type": "string", "minLength": 1},
+          "additionalProperties": {"type": "string", "minLength": 1}
         }
       }
     }

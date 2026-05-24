@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://operational-evidence-plane.local/schema/tool_permission_packet.v0.schema.json",
   "title": "Operational Evidence Plane Tool Permission Packet v0",
-  "description": "Permission decision evidence packet for joining an agent tool call to release manifest, runtime event, trace, and OPA policy decision evidence. The v0.2 release extends this packet with optional replayable permission trace fields (scoped_credential_lifetime, approval_capture, policy_bundle_version, release_manifest_version, model_alias, resolved_model_version, model_provider). The v0.3 release adds optional nd_builtin_cache capture for OPA-style non-deterministic builtin replay. These fields are additive and remain optional so v0.1 records continue to validate; v0.2 and later examples may populate them.",
+  "description": "Permission decision evidence packet for joining an agent tool call to release manifest, runtime event, trace, and OPA policy decision evidence. The v0.2 release extends this packet with optional replayable permission trace fields (scoped_credential_lifetime, approval_capture, policy_bundle_version, release_manifest_version, model_alias, resolved_model_version, model_provider). The v0.3 release adds optional nd_builtin_cache capture and an optional decision_id metadata object for cost, drift, cache, and identity replay surfaces. These fields are additive and remain optional so v0.1/v0.2 records continue to validate; v0.3 examples may populate them.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -146,6 +146,12 @@
         {"$ref": "#/$defs/nd_builtin_cache"}
       ]
     },
+    "decision_id": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "#/$defs/decision_id_metadata"}
+      ]
+    },
     "links": {
       "$ref": "#/$defs/links"
     },
@@ -245,6 +251,197 @@
       "additionalProperties": {
         "type": "object",
         "additionalProperties": true
+      }
+    },
+    "decision_id_metadata": {
+      "type": "object",
+      "description": "Optional v0.3 composite metadata carried by the decision id. It joins replayable permission, cost, drift, cache, and identity surfaces without making those surfaces mandatory for older records.",
+      "additionalProperties": false,
+      "required": ["schema_version"],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "0.3"
+        },
+        "permission": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/decision_permission_surface"}
+          ]
+        },
+        "cost": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/decision_cost_surface"}
+          ]
+        },
+        "drift": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/decision_drift_surface"}
+          ]
+        },
+        "cache": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/decision_cache_surface"}
+          ]
+        },
+        "identity": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/decision_identity_surface"}
+          ]
+        }
+      }
+    },
+    "decision_permission_surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "permission_packet_ref": {"type": "string", "pattern": "^pder_[a-z0-9][a-z0-9_-]*$"},
+        "tool_call_id": {"type": "string", "pattern": "^tool_[a-z0-9][a-z0-9_-]*$"},
+        "policy_bundle_version": {"type": "string", "minLength": 1},
+        "approval_capture_ref": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "pattern": "^approval_[a-z0-9][a-z0-9_-]*$"}
+          ]
+        }
+      }
+    },
+    "decision_cost_surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "per_step_cost_usd": {"type": "number", "minimum": 0},
+        "per_step_cost_tokens": {"type": "integer", "minimum": 0},
+        "budget_cap_active": {"type": "boolean"},
+        "budget_cap_source": {
+          "type": "string",
+          "enum": ["per_session", "per_tenant", "per_agent"]
+        },
+        "budget_reservation_id": {"type": "string", "pattern": "^bres_[a-z0-9][a-z0-9_-]*$"},
+        "reservation_estimated_cost_usd": {"type": "number", "minimum": 0},
+        "reservation_committed_cost_usd": {"type": "number", "minimum": 0},
+        "reservation_excess_released_usd": {"type": "number", "minimum": 0},
+        "budget_cap_active_at_reservation_time": {"type": "boolean"},
+        "reservation_outcome": {
+          "type": "string",
+          "enum": ["allowed", "denied_budget_exhausted", "denied_policy", "committed"]
+        },
+        "pre_session_projection_event": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/pre_session_projection_event"}
+          ]
+        }
+      }
+    },
+    "pre_session_projection_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["projected_cost_window", "approver_identity", "approval_outcome"],
+      "properties": {
+        "projected_cost_window": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["estimated_min_usd", "estimated_max_usd"],
+          "properties": {
+            "estimated_min_usd": {"type": "number", "minimum": 0},
+            "estimated_max_usd": {"type": "number", "minimum": 0}
+          }
+        },
+        "approver_identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "id", "display_name"],
+          "properties": {
+            "type": {"type": "string", "enum": ["human", "system"]},
+            "id": {"type": "string", "minLength": 1},
+            "display_name": {"type": "string", "minLength": 1}
+          }
+        },
+        "approval_outcome": {
+          "type": "string",
+          "enum": ["approved", "denied", "not_required"]
+        }
+      }
+    },
+    "decision_drift_surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "model_version": {"$ref": "#/$defs/drift_surface_change"},
+        "policy_bundle": {"$ref": "#/$defs/drift_surface_change"},
+        "prompt_template": {"$ref": "#/$defs/drift_surface_change"},
+        "tool_registry": {"$ref": "#/$defs/drift_surface_change"},
+        "retrieval_corpus": {"$ref": "#/$defs/drift_surface_change"}
+      }
+    },
+    "drift_surface_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["before_version", "after_version", "change_class", "attribution_confidence"],
+      "properties": {
+        "before_version": {"type": "string", "minLength": 1},
+        "after_version": {"type": "string", "minLength": 1},
+        "change_class": {
+          "type": "string",
+          "enum": ["alias_resolution", "policy_update", "prompt_edit", "tool_added_removed", "corpus_indexed"]
+        },
+        "attribution_confidence": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "decision_cache_surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cache_hit_id": {"type": "string", "pattern": "^cache_[a-z0-9][a-z0-9_-]*$"},
+        "cache_version": {"type": "string", "minLength": 1},
+        "embedding_model_version": {"type": "string", "minLength": 1},
+        "staleness_flag": {"type": "boolean"},
+        "cache_correctness_status": {"type": "string", "minLength": 1},
+        "similarity_score": {"type": "number", "minimum": 0, "maximum": 1},
+        "invalidation_event_id": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "pattern": "^evt_[a-z0-9][a-z0-9_-]*$"}
+          ]
+        }
+      }
+    },
+    "decision_identity_surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "agent_identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "id", "display_name"],
+          "properties": {
+            "type": {"type": "string", "const": "agent"},
+            "id": {"type": "string", "pattern": "^agent_[a-z0-9][a-z0-9_-]*$"},
+            "display_name": {"type": "string", "minLength": 1}
+          }
+        },
+        "id_jag_binding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["draft", "binding_id", "subject"],
+          "properties": {
+            "draft": {"type": "string", "minLength": 1},
+            "binding_id": {"type": "string", "pattern": "^idjag_[a-z0-9][a-z0-9_-]*$"},
+            "subject": {"type": "string", "minLength": 1}
+          }
+        },
+        "policy_version": {"type": "string", "minLength": 1},
+        "approval_capture_ref": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "pattern": "^approval_[a-z0-9][a-z0-9_-]*$"}
+          ]
+        }
       }
     },
     "links": {
