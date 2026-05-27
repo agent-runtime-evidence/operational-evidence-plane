@@ -235,6 +235,7 @@ For the fastest read, open these in order:
 - [Bedrock translation](translations/bedrock/README.md)
 - [Decision Trace Reconstructor integration](integrations/decision-trace-reconstructor/README.md)
 - [Model Context Protocol (MCP) adapter](integrations/mcp/README.md)
+- [LangGraph adapter mapping](integrations/langgraph/README.md) — projection demo for LangGraph checkpoint events; production wrapper ships separately as the [`langgraph-oep`](https://github.com/agent-runtime-evidence/langgraph-oep) pip package (`pip install langgraph-oep`)
 
 ## Current Artifacts
 
@@ -425,8 +426,20 @@ mapping data with a standalone script — it does not call MCP servers
 or vendor APIs.
 
 The adapter is illustration, not a replacement for MCP, LangSmith,
-Bedrock, OTel, A2A, or OPA. Other framework adapters (LangGraph,
-OpenAI Assistants, Bedrock) remain post-core translation material.
+Bedrock, OTel, A2A, or OPA. A LangGraph adapter ships alongside in
+[`integrations/langgraph/`](integrations/langgraph/) as projection
+mapping, and as the separate [`langgraph-oep`](https://github.com/agent-runtime-evidence/langgraph-oep)
+pip package for runtime use. Other framework adapters (OpenAI
+Assistants, Bedrock) remain post-core translation material.
+
+The public anchors for the permission-evidence framing this adapter
+exposes are the [Model Context Protocol authorization specification
+(2025-03-26)](https://modelcontextprotocol.io/specification/2025-03-26/basic/authorization)
+and the [NSA Cybersecurity Information sheet on MCP security design
+considerations](https://www.nsa.gov/Portals/75/documents/Cybersecurity/CSI_MCP_SECURITY.pdf).
+Both are cited as third-party public guidance, not as endorsements of
+this repository. The integration-side reference list lives in
+[`integrations/mcp/README.md`](integrations/mcp/README.md).
 
 ## Claim Boundaries
 

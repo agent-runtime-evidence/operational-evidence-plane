@@ -1,0 +1,179 @@
+{
+  "mapping_version": "oep.langgraph_mapping.v0",
+  "langgraph": {
+    "checkpoint_id": "ckpt_code_review_read_diff_0001",
+    "state_snapshot": {
+      "values": {
+        "tool": {
+          "name": "read_diff",
+          "version": "0.1.0",
+          "operation": "read"
+        },
+        "requested_action": {
+          "action_type": "inspect_diff",
+          "name": "inspect synthetic repository diff",
+          "input_ref": "demo/fixtures/diff_synthetic_001.patch"
+        },
+        "resource": {
+          "type": "repository_diff",
+          "id": "diff_synthetic_001",
+          "uri": "demo/fixtures/diff_synthetic_001.patch",
+          "mutable": false
+        }
+      },
+      "next": ["evaluate_diff"],
+      "metadata": {
+        "source": "loop",
+        "step": 1,
+        "writes": {
+          "request_diff_inspection": {
+            "tool": "read_diff",
+            "operation": "read"
+          }
+        }
+      },
+      "created_at": "2026-05-04T00:00:01Z",
+      "parent_config": {
+        "configurable": {
+          "thread_id": "code-review-reference-demo",
+          "checkpoint_ns": "",
+          "checkpoint_id": "ckpt_code_review_initial_0000"
+        }
+      }
+    }
+  },
+  "wrapper": {
+    "actor": {
+      "type": "agent",
+      "id": "agent_code_review_reference_demo",
+      "display_name": "code-review-agent-reference-demo"
+    },
+    "session": {
+      "tool_call_id": "tool_read_diff_0001",
+      "event_id": "evt_code_review_agent_step_0001",
+      "trace_id": "11111111111111111111111111111111",
+      "span_id": "2222222222222222",
+      "release_manifest_id": "rmf_code_review_agent_2026_05_04_v0",
+      "packet_id": "pder_code_review_read_diff_0001",
+      "decision_time": "2026-05-04T00:00:01Z",
+      "scoped_credential_lifetime": "PT15M",
+      "approval_capture": null,
+      "policy_bundle_version": "sha256:e0d5563e9e046960f5435ab1e00f26df8925e16ca7a207ee37df65b7151bcb27",
+      "release_manifest_version": "sha256:27c6c2f1ace5aeb9549a07d2287a5b251188181a383bbb84d3dc6ef7821608a4",
+      "model_binding": {
+        "alias": "deterministic-mock-reviewer",
+        "resolved_version": "0.1.0",
+        "provider": "operational-evidence-plane-reference"
+      },
+      "claim_boundary": "This packet records one OPA-backed permission decision for a synthetic reference demo. The v0.2 fields (scoped_credential_lifetime, approval_capture, policy_bundle_version, release_manifest_version, model_alias, resolved_model_version, model_provider) are record-keeping additions for replayability; they do not create a compliance, audit, or model-quality claim.",
+      "decision_id": {
+        "cache": {
+          "cache_correctness_status": "not_applicable",
+          "cache_hit_id": "cache_code_review_no_hit_0001",
+          "cache_version": "cache.v0.empty",
+          "embedding_model_version": "deterministic-embedding-0.1.0",
+          "invalidation_event_id": null,
+          "similarity_score": 0,
+          "staleness_flag": false
+        },
+        "cost": {
+          "budget_cap_active": true,
+          "budget_cap_active_at_reservation_time": true,
+          "budget_cap_source": "per_session",
+          "budget_reservation_id": "bres_code_review_0001",
+          "per_step_cost_tokens": 420,
+          "per_step_cost_usd": 0.01,
+          "pre_session_projection_event": {
+            "approval_outcome": "approved",
+            "approver_identity": {
+              "display_name": "reference budget owner",
+              "id": "human_reference_budget_owner",
+              "type": "human"
+            },
+            "projected_cost_window": {
+              "estimated_max_usd": 1,
+              "estimated_min_usd": 0.01
+            }
+          },
+          "reservation_committed_cost_usd": 0.01,
+          "reservation_estimated_cost_usd": 0.05,
+          "reservation_excess_released_usd": 0.04,
+          "reservation_outcome": "committed"
+        },
+        "drift": {
+          "model_version": {
+            "after_version": "deterministic-mock-reviewer@0.1.0",
+            "attribution_confidence": 1,
+            "before_version": "deterministic-mock-reviewer@0.1.0",
+            "change_class": "alias_resolution"
+          },
+          "policy_bundle": {
+            "after_version": "sha256:e0d5563e9e046960f5435ab1e00f26df8925e16ca7a207ee37df65b7151bcb27",
+            "attribution_confidence": 1,
+            "before_version": "sha256:e0d5563e9e046960f5435ab1e00f26df8925e16ca7a207ee37df65b7151bcb27",
+            "change_class": "policy_update"
+          },
+          "prompt_template": {
+            "after_version": "code-review-agent-prompt@0.1.0",
+            "attribution_confidence": 1,
+            "before_version": "code-review-agent-prompt@0.1.0",
+            "change_class": "prompt_edit"
+          },
+          "retrieval_corpus": {
+            "after_version": "no-retrieval-corpus@0.1.0",
+            "attribution_confidence": 1,
+            "before_version": "no-retrieval-corpus@0.1.0",
+            "change_class": "corpus_indexed"
+          },
+          "tool_registry": {
+            "after_version": "code-review-tool-registry@0.1.0",
+            "attribution_confidence": 1,
+            "before_version": "code-review-tool-registry@0.1.0",
+            "change_class": "tool_added_removed"
+          }
+        },
+        "identity": {
+          "agent_identity": {
+            "display_name": "code-review-agent-reference-demo",
+            "id": "agent_code_review_reference_demo",
+            "type": "agent"
+          },
+          "approval_capture_ref": null,
+          "id_jag_binding": {
+            "binding_id": "idjag_code_review_agent_0001",
+            "draft": "ietf-id-jag-draft",
+            "subject": "agent_code_review_reference_demo"
+          },
+          "policy_version": "0.1.0"
+        },
+        "permission": {
+          "approval_capture_ref": null,
+          "permission_packet_ref": "pder_code_review_read_diff_0001",
+          "policy_bundle_version": "sha256:e0d5563e9e046960f5435ab1e00f26df8925e16ca7a207ee37df65b7151bcb27",
+          "tool_call_id": "tool_read_diff_0001"
+        },
+        "schema_version": "0.3"
+      }
+    },
+    "policy_response": {
+      "policy_ref": {
+        "engine": "opa",
+        "package": "data.oep.permissions",
+        "policy_id": "opa-tool-permission-policy",
+        "policy_version": "0.1.0",
+        "policy_uri": "permissions/policy/tool_permissions.rego"
+      },
+      "decision": {
+        "allow": true,
+        "reason": "reference code review agent may inspect an immutable synthetic diff",
+        "matched_rule": "allow_reference_code_review_diff_read",
+        "opa_result_ref": "opa eval --data permissions/policy/tool_permissions.rego --input permissions/policy/input/code_review_read_diff.json data.oep.permissions.decision"
+      },
+      "links": {
+        "event_ref": "events/examples/code_review_agent_step.v0.json",
+        "release_manifest_ref": "manifest/examples/code_review_agent_release.v0.json",
+        "trace_ref": "traces/examples/code_review_agent_trace.v0.json"
+      }
+    }
+  }
+}

@@ -1,0 +1,264 @@
+# LangGraph -> OEP tool permission packet mapping (v0)
+#
+# Field-by-field translation from a synthetic LangGraph checkpoint
+# envelope (extended by a wrapper layer with the operational evidence
+# fields LangGraph does not natively bind) to the OEP
+# `tool_permission_packet.v0` schema, including the v0.2 replayable-
+# permission-trace fields and v0.3 `decision_id` metadata.
+#
+# Each row carries a `source_origin` label:
+#   - langgraph_native     captured by LangGraph at checkpoint time
+#                          (per StateSnapshot fields: values, next,
+#                          metadata, created_at, parent_config)
+#   - wrapper_injected     added by the wrapper at checkpoint write time
+#                          because LangGraph does not natively bind this
+#                          field. This is the point of the adapter: it
+#                          shows which OEP-required surfaces must be
+#                          injected on top of a vanilla LangGraph
+#                          checkpoint to enable substitution-class
+#                          counterfactual replay.
+#
+# Per the LangGraph documentation accessed 2026-05-26:
+#   - https://docs.langchain.com/oss/python/langgraph/use-time-travel
+#     "Replay re-executes nodes — it doesn't just read from cache.
+#      LLM calls, API requests, and interrupts fire again and may return
+#      different results."
+#   - https://docs.langchain.com/oss/python/langgraph/persistence
+#     "Nodes after the checkpoint re-execute, including any LLM calls,
+#      API requests, or interrupts — which are always re-triggered
+#      during replay."
+#
+# The mapping is illustration. It is not a replacement for LangGraph,
+# LangSmith, OPA, OTel, or any agent framework. It demonstrates one
+# inspectable way to project a LangGraph checkpoint event (extended
+# with wrapper-injected operational evidence) into the OEP permission
+# packet record.
+
+schema_version: oep.langgraph_mapping.v0
+source: langgraph-checkpoint-event-with-wrapper
+target: oep.tool_permission_packet.v0
+
+# Identifiers carried into the OEP packet. Most of these are
+# wrapper_injected because LangGraph does not bind tool-call identifiers,
+# trace IDs, span IDs, packet IDs, decision_time, or release manifest
+# IDs to its checkpoint. LangGraph's StateSnapshot binds only
+# checkpoint_id (via created_at and parent_config); everything else
+# below must come from the wrapper.
+identity:
+  - langgraph_field: wrapper.session.tool_call_id
+    oep_field: tool_call_id
+    source_origin: wrapper_injected
+    notes: |
+      LangGraph does not generate or bind a tool-call identifier. The
+      wrapper injects one (typically the framework's run id or a
+      derived value) so the OEP packet can join the tool call back to
+      the agent step.
+
+  - langgraph_field: wrapper.session.event_id
+    oep_field: event_id
+    source_origin: wrapper_injected
+
+  - langgraph_field: wrapper.session.trace_id
+    oep_field: trace_id
+    source_origin: wrapper_injected
+    notes: |
+      LangGraph does not bind an OTel-style trace_id to the checkpoint.
+      An OTel-instrumented wrapper would inject the active trace_id.
+
+  - langgraph_field: wrapper.session.span_id
+    oep_field: span_id
+    source_origin: wrapper_injected
+
+  - langgraph_field: wrapper.session.release_manifest_id
+    oep_field: release_manifest_id
+    source_origin: wrapper_injected
+    notes: |
+      LangGraph has no concept of a release manifest. The wrapper
+      injects the release manifest id active at checkpoint time.
+
+  - langgraph_field: wrapper.session.packet_id
+    oep_field: packet_id
+    source_origin: wrapper_injected
+    notes: |
+      OEP packet identifier. Wrapper assigns this at projection time.
+
+  - langgraph_field: wrapper.session.decision_time
+    oep_field: decision_time
+    source_origin: wrapper_injected
+    notes: |
+      LangGraph captures `created_at` at the checkpoint level. The
+      wrapper injects `decision_time` as the OEP-shaped equivalent for
+      the specific tool call being recorded. May be equal to
+      `langgraph.state_snapshot.created_at` if the checkpoint coincides
+      with the decision.
+
+# Tool-call surface. LangGraph node executions can be tool calls,
+# LLM calls, or pure routing. The wrapper expresses the tool call in
+# `langgraph.state_snapshot.values.requested_action` and
+# `langgraph.state_snapshot.values.tool` — these are state channel values
+# the wrapper writes into the graph state immediately before the tool
+# node executes, so they survive into the checkpoint as LangGraph-native
+# fields. The OEP permission packet records the action and tool that
+# the OPA decision concerned.
+tool_call:
+  - langgraph_field: langgraph.state_snapshot.values.tool.name
+    oep_field: tool.name
+    source_origin: langgraph_native
+    notes: |
+      State channel value written before tool execution. LangGraph
+      checkpoints it as part of `values`.
+  - langgraph_field: langgraph.state_snapshot.values.tool.version
+    oep_field: tool.version
+    source_origin: langgraph_native
+  - langgraph_field: langgraph.state_snapshot.values.tool.operation
+    oep_field: tool.operation
+    source_origin: langgraph_native
+  - langgraph_field: langgraph.state_snapshot.values.requested_action.input_ref
+    oep_field: requested_action.input_ref
+    source_origin: langgraph_native
+  - langgraph_field: langgraph.state_snapshot.values.requested_action.action_type
+    oep_field: requested_action.action_type
+    source_origin: langgraph_native
+  - langgraph_field: langgraph.state_snapshot.values.requested_action.name
+    oep_field: requested_action.name
+    source_origin: langgraph_native
+  - langgraph_field: langgraph.state_snapshot.values.resource
+    oep_field: resource
+    source_origin: langgraph_native
+
+# Actor and session metadata. LangGraph does not bind an agent-level
+# actor record to its checkpoint. The wrapper injects it.
+actor:
+  - langgraph_field: wrapper.actor
+    oep_field: actor
+    source_origin: wrapper_injected
+    notes: |
+      LangGraph has no first-class agent identity record at the
+      checkpoint. Wrapper supplies the actor metadata (typically
+      derived from upstream auth / SPIFFE / workload identity).
+
+# Policy / decision metadata captured via the wrapper's OPA response.
+# LangGraph itself does not call OPA, evaluate policies, or bind
+# permission decisions to checkpoints. The wrapper observes the policy
+# decision out-of-band and injects it for OEP projection.
+policy:
+  - langgraph_field: wrapper.policy_response.policy_ref
+    oep_field: policy
+    source_origin: wrapper_injected
+  - langgraph_field: wrapper.policy_response.decision
+    oep_field: decision
+    source_origin: wrapper_injected
+  - langgraph_field: wrapper.policy_response.links
+    oep_field: links
+    source_origin: wrapper_injected
+  - langgraph_field: wrapper.session.claim_boundary
+    oep_field: claim_boundary
+    source_origin: wrapper_injected
+
+# v0.2 replayable permission trace fields. None of these are LangGraph-
+# native. They are precisely the surface set that LangGraph's
+# StateSnapshot does not capture (model alias / resolved version,
+# policy bundle version, scoped credential lifetime, approval capture,
+# release manifest version). The wrapper must inject all of them at
+# checkpoint write time for substitution-class counterfactual replay to
+# be possible.
+replay_v0_2:
+  - langgraph_field: wrapper.session.scoped_credential_lifetime
+    oep_field: scoped_credential_lifetime
+    source_origin: wrapper_injected
+    notes: |
+      ISO 8601 duration. Null if the wrapper did not scope a credential
+      for the call. LangGraph has no concept of scoped credentials at
+      checkpoint level.
+  - langgraph_field: wrapper.session.approval_capture
+    oep_field: approval_capture
+    source_origin: wrapper_injected
+    notes: |
+      Null when no human approval was required. LangGraph's `interrupt`
+      and human-in-the-loop primitives can produce approval-like events
+      at runtime, but LangGraph does not bind approval evidence
+      (auto / human / fallback origin, approver identity, approval id)
+      into the checkpoint StateSnapshot. The wrapper records this.
+  - langgraph_field: wrapper.session.policy_bundle_version
+    oep_field: policy_bundle_version
+    source_origin: wrapper_injected
+    notes: |
+      Hash of the policy bundle in effect at the call. Not bound by
+      LangGraph's checkpoint.
+  - langgraph_field: wrapper.session.release_manifest_version
+    oep_field: release_manifest_version
+    source_origin: wrapper_injected
+    notes: |
+      Hash of the release manifest in effect at the call. Not bound by
+      LangGraph's checkpoint.
+  - langgraph_field: wrapper.session.model_binding.alias
+    oep_field: model_alias
+    source_origin: wrapper_injected
+    notes: |
+      LangGraph's checkpoint does not bind the model alias active at
+      the time of the LLM call. Replaying the same checkpoint against a
+      different alias is not possible without this field.
+  - langgraph_field: wrapper.session.model_binding.resolved_version
+    oep_field: resolved_model_version
+    source_origin: wrapper_injected
+    notes: |
+      LangGraph re-executes LLM calls during replay; the resolved model
+      version is whatever the live provider returns at replay time. The
+      wrapper must record the resolved version at original execution
+      time if the OEP packet is to be reconstructable.
+  - langgraph_field: wrapper.session.model_binding.provider
+    oep_field: model_provider
+    source_origin: wrapper_injected
+
+# v0.3 decision_id metadata for cost / drift / cache / identity
+# substitution surfaces. None are LangGraph-native. The wrapper records
+# this composite at projection time.
+decision_id:
+  - langgraph_field: wrapper.session.decision_id
+    oep_field: decision_id
+    source_origin: wrapper_injected
+    notes: |
+      The full v0.3 decision_id object (cache, cost, drift, identity).
+      LangGraph captures none of these substitution surfaces in its
+      checkpoint. The wrapper is responsible for recording them so the
+      OEP counterfactual replay primitive can substitute any of them
+      against the stored decision.
+
+# Fields the adapter does not consume. LangGraph's StateSnapshot carries
+# additional metadata that is useful for execution recovery / branched
+# development exploration but does not project to the OEP permission
+# packet.
+unmapped:
+  - langgraph.state_snapshot.next
+  - langgraph.state_snapshot.metadata.source
+  - langgraph.state_snapshot.metadata.step
+  - langgraph.state_snapshot.metadata.writes
+  - langgraph.state_snapshot.parent_config
+  - langgraph.checkpoint_id
+  - langgraph.state_snapshot.created_at
+notes_unmapped: |
+  LangGraph's checkpoint framing fields (next, metadata, parent_config,
+  checkpoint_id) are about execution-state resumption and branched
+  development, not about evidence binding. They support LangGraph time-
+  travel (replay from a checkpoint with the same inputs, fork to a
+  branch) and do not project to the OEP permission packet.
+
+  The OEP packet records the decision about the call (who allowed it,
+  against which policy bundle, at which release version, with which
+  scoped credential, against which approval state), not the graph
+  resumption pointer.
+
+# Summary count of source_origin labels for quick audit.
+source_origin_summary:
+  langgraph_native: 7
+  wrapper_injected: 19
+  notes: |
+    7 OEP fields project from LangGraph-native state channel values
+    (the tool call surface — name, version, operation, input_ref,
+    action_type, action_name, resource). 19 OEP fields require
+    wrapper-injected operational evidence that LangGraph does not bind
+    natively. This 7:19 ratio is the in-code expression of the central
+    distinction between LangGraph time-travel (sufficient for branched
+    development from a checkpoint with same inputs) and OEP
+    counterfactual replay (requires the wrapper-injected surface set
+    to substitute policy / model / cache / identity at replay time).

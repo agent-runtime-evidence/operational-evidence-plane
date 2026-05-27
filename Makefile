@@ -15,9 +15,9 @@ DTR_INTEGRATION_DIR := integrations/decision-trace-reconstructor
 DTR_SCENARIO ?= code_review_agent
 DTR_SCENARIOS ?= $(shell $(PYTHON) -c "from oep_verify.scenarios import scenario_names; print(' '.join(scenario_names()))")
 
-.PHONY: verify check-opa-dependency compile validate-manifest validate-events validate-permissions validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-replay-cli validate-counterfactual-replay check-replay-determinism validate-counterfactual-schema validate-5surface-diff validate-cost-counterfactual validate-reserve-commit-release validate-cross-provider-drift validate-cache-substitution validate-identity-binding validate-composite validate-backward-compat check-docs check-permission-digests test test-policy coverage lint typecheck build-check sync-resources update-digests check-digests clean-state regen-dtr-jsonl check-dtr-jsonl validate-dtr
+.PHONY: verify check-opa-dependency compile validate-manifest validate-events validate-permissions validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-langgraph validate-replay-cli validate-counterfactual-replay check-replay-determinism validate-counterfactual-schema validate-5surface-diff validate-cost-counterfactual validate-reserve-commit-release validate-cross-provider-drift validate-cache-substitution validate-identity-binding validate-composite validate-backward-compat check-docs check-permission-digests test test-policy coverage lint typecheck build-check sync-resources update-digests check-digests clean-state regen-dtr-jsonl check-dtr-jsonl validate-dtr
 
-verify: check-opa-dependency compile validate-manifest validate-events test-policy validate-permissions validate-counterfactual-schema validate-backward-compat validate-5surface-diff validate-cost-counterfactual validate-reserve-commit-release validate-cross-provider-drift validate-cache-substitution validate-identity-binding validate-composite check-permission-digests validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-replay-cli validate-counterfactual-replay check-replay-determinism check-dtr-jsonl check-docs build-check
+verify: check-opa-dependency compile validate-manifest validate-events test-policy validate-permissions validate-counterfactual-schema validate-backward-compat validate-5surface-diff validate-cost-counterfactual validate-reserve-commit-release validate-cross-provider-drift validate-cache-substitution validate-identity-binding validate-composite check-permission-digests validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-langgraph validate-replay-cli validate-counterfactual-replay check-replay-determinism check-dtr-jsonl check-docs build-check
 
 check-opa-dependency:
 	@command -v $(OPA) > /dev/null 2>&1 || (echo "Error: '$(OPA)' CLI is not installed or not on PATH. Install OPA CLI 1.x or set OPA=/path/to/opa." >&2; exit 1)
@@ -55,6 +55,9 @@ validate-bedrock:
 
 validate-mcp:
 	$(PYTHON) integrations/mcp/scripts/to_oep_permission.py
+
+validate-langgraph:
+	$(PYTHON) integrations/langgraph/scripts/to_oep_permission.py
 
 validate-replay-cli:
 	OEP_REPLAY_MODE=read-only $(PYTHON) -m oep_verify.cli replay pder_code_review_read_diff_0001 --field decision_id > /dev/null
@@ -149,6 +152,7 @@ coverage:
 	OEP_DEMO_STATE_PATH="$(COVERAGE_DEMO_STATE)" $(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" playbooks/scripts/check_reconstruction_packet.py
 	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" translations/bedrock/scripts/check_bedrock_translation.py
 	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" integrations/mcp/scripts/to_oep_permission.py
+	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" integrations/langgraph/scripts/to_oep_permission.py
 	OEP_DEMO_STATE_PATH="$(COVERAGE_DEMO_STATE)" OEP_REPLAY_MODE=read-only $(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" -m oep_verify.cli replay pder_code_review_read_diff_0001 --field decision_id > /dev/null
 	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" replay/scripts/check_counterfactual_replay_schema.py
 	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" replay/scripts/check_v03_features.py

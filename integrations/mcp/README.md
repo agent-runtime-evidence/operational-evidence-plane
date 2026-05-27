@@ -69,6 +69,8 @@ post-core translation material and are out of v0.2 scope.
 ## References
 
 - Model Context Protocol specification: <https://modelcontextprotocol.io/>
+- Model Context Protocol authorization specification, 2025-03-26 — transport-level OAuth 2.1 + RFC 8414 metadata + RFC 7591 dynamic client registration; constrains what an MCP permission decision can carry into the OEP permission packet: <https://modelcontextprotocol.io/specification/2025-03-26/basic/authorization>
+- NSA Cybersecurity Information sheet on Model Context Protocol security design considerations — public security guidance treating MCP as production-relevant and naming dynamic tool invocation, ambiguous identity / access control, and untraceable access among the design gaps that an evidence layer such as OEP can record after the fact, on the evidence side, not the prevention side: <https://www.nsa.gov/Portals/75/documents/Cybersecurity/CSI_MCP_SECURITY.pdf>
 - OEP architecture walkthrough: [`../../docs/architecture.md`](../../docs/architecture.md)
 - OEP decision log (v0.2 Decisions): [`../../docs/decision_log.md`](../../docs/decision_log.md)
 - Public claim boundaries: [`../../docs/public_claims.md`](../../docs/public_claims.md)

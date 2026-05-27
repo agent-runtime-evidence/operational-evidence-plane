@@ -21,8 +21,10 @@ recursive-include traces *.py *.json *.toml py.typed
 recursive-include playbooks *.py *.json *.md *.toml py.typed
 recursive-include demo *.py *.patch *.md *.toml py.typed .gitkeep
 recursive-include translations *.md *.json *.py
+include integrations/__init__.py
 recursive-include integrations/decision-trace-reconstructor *.md *.yaml *.json *.jsonl *.py
 recursive-include integrations/mcp *.md *.yaml *.json *.py
+recursive-include integrations/langgraph *.md *.yaml *.json *.py
 recursive-include scripts *.py
 recursive-include tests *.py
 

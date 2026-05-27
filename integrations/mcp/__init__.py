@@ -1,0 +1,1 @@
+"""MCP translation adapter resources."""
