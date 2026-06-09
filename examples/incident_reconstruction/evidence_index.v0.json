@@ -1,0 +1,55 @@
+{
+  "schema_version": "oep.incident_reconstruction_example.v0",
+  "scenario_id": "incident_reconstruction_destructive_tool_call_cost_tail_0001",
+  "created_at": "2026-06-02T00:00:00Z",
+  "incident_variant": {
+    "summary": "Synthetic over-scoped destructive tool call plus a cost-runaway tail after a silent model-alias swap.",
+    "destructive_tool_call": "The reference agent attempts a mutable write against the synthetic repository diff and is denied by the OPA-backed permission packet.",
+    "cost_tail": "A synthetic 47-step replay output shows where a prior budget-per-run cap would have stopped the run.",
+    "model_alias_swap": "A composed replay substitutes a Bedrock Anthropic model version and labels the result as evaluative."
+  },
+  "scope_choices": {
+    "incident_variant": "synthetic destructive write + cost-runaway tail + silent model-alias swap",
+    "demo_vs_narrative": "evidence-package first; narrative explains the operational reconstruction question",
+    "reuse_boundary": "uses shipped OEP v0.3.0 schemas, examples, policies, and replay commands; no new primitive"
+  },
+  "evidence_refs": {
+    "version_bundle": "manifest/examples/code_review_agent_release.v0.json",
+    "agent_step_event": "events/examples/code_review_agent_denied_step.v0.json",
+    "tool_permission_packet": "permissions/examples/code_review_tool_permission_denied.v0.json",
+    "operational_trace": "traces/examples/code_review_agent_denied_trace.v0.json",
+    "reconstruction_packet": "playbooks/examples/code_review_denied_reconstruction_packet.v0.json",
+    "budget_runaway_replay": "examples/incident_reconstruction/counterfactual/budget_per_run_counterfactual.v0.json",
+    "budget_runaway_replay_jsonl": "examples/incident_reconstruction/counterfactual/budget_per_run_counterfactual.v0.jsonl",
+    "model_budget_replay": "examples/incident_reconstruction/model_budget_counterfactual.v0.json",
+    "case_study": "examples/incident_reconstruction/case_study.md"
+  },
+  "counterfactual_answers": {
+    "would_destructive_call_have_been_denied": {
+      "answer": "yes",
+      "evidence_ref": "permissions/examples/code_review_tool_permission_denied.v0.json",
+      "reason": "The stored permission packet records allow=false and matched_rule=deny_by_default for the mutable write operation."
+    },
+    "would_prior_budget_have_bounded_the_tail": {
+      "answer": "yes",
+      "evidence_ref": "examples/incident_reconstruction/counterfactual/budget_per_run_counterfactual.v0.json",
+      "reason": "The budget replay records termination_step=6 and counterfactual_total_usd=5000 against original_total_usd=47000."
+    },
+    "does_model_substitution_show_what_would_have_happened": {
+      "answer": "no",
+      "evidence_ref": "examples/incident_reconstruction/model_budget_counterfactual.v0.json",
+      "reason": "The replay output labels cross-provider model substitution as replay_class=evaluative and counterfactual_label=counterfactual estimate."
+    }
+  },
+  "claim_boundary": [
+    "reference implementation / example",
+    "not a standard",
+    "not production-ready",
+    "not an employer-shipped production incident",
+    "not a benchmark or model-quality claim",
+    "not a compliance certification or legal sufficiency claim",
+    "deterministic replay applies only to recorded deterministic surfaces; model substitution is evaluative"
+  ],
+  "paper_gap_note": "No new preprint is spawned by this example. A formal paper hook would require a separate source scan showing a precise, role-relevant formal gap beyond this reference implementation."
+}
+

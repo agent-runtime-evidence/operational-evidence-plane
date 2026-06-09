@@ -1,0 +1,47 @@
+{
+  "schema_version": "oep.human_review_event.v0",
+  "event_id": "hrev_code_review_rejected_0001",
+  "event_time": "2026-05-04T00:05:00Z",
+  "event_type": "human_review.rejected",
+  "reviewed_decision_ref": {
+    "event_id": "evt_code_review_agent_step_0001",
+    "trace_id": "11111111111111111111111111111111",
+    "span_id": "2222222222222222",
+    "decision_record_ref": "events/examples/code_review_agent_step.v0.json"
+  },
+  "reviewer": {
+    "type": "human",
+    "id": "user_security_reviewer_02",
+    "display_name": "Security Reviewer",
+    "authority": {
+      "role": "security_reviewer",
+      "basis": "RBAC:block_merge",
+      "scope": "org-wide security gate"
+    }
+  },
+  "context_as_shown": {
+    "sha256": "sha256:f8050837038f13d5e3bd509f7c885293fc97b1f3da9147396d104a812afe56aa",
+    "ref": "events/examples/human_review/context_code_review.md",
+    "media_type": "text/markdown"
+  },
+  "action": {
+    "outcome": "rejected",
+    "captured_at": "2026-05-04T00:05:00Z",
+    "rationale_ref": null
+  },
+  "decision_binding": {
+    "reviewed_decision_digest": "sha256:571de648706e258e844bae4a84e20df815fb2f3bc77440e6a6dbd4097082cf53",
+    "context_digest": "sha256:f8050837038f13d5e3bd509f7c885293fc97b1f3da9147396d104a812afe56aa",
+    "binding_digest": "sha256:07a4db987698867b4d1d86ae023dc799d0a85f3eb5edb6b2b57730dd4920e1b7",
+    "algorithm": "oep.human_review_binding.v0"
+  },
+  "env": {
+    "release_manifest_id": "rmf_code_review_agent_2026_05_04_v0",
+    "policy_bundle_version": null
+  },
+  "links": {
+    "reviewed_event_ref": "events/examples/code_review_agent_step.v0.json",
+    "context_ref": "events/examples/human_review/context_code_review.md",
+    "trace_ref": null
+  }
+}

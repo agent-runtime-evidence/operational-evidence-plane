@@ -297,6 +297,7 @@ The playbook packet is the first reconstruction output:
 - [Code-review reconstruction packet](playbooks/examples/code_review_reconstruction_packet.v0.json)
 - [Denied blocked reconstruction packet](playbooks/examples/code_review_denied_reconstruction_packet.v0.json)
 - [Scenario reconstruction checker](playbooks/scripts/check_reconstruction_packet.py)
+- [Incident reconstruction case study](examples/incident_reconstruction/README.md)
 
 The current inspectable chain is:
 

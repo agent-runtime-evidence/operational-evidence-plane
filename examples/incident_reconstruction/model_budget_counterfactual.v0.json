@@ -1,0 +1,81 @@
+{
+  "claim_boundary": "This record is an inspectable v0.3 counterfactual replay output for the reference implementation. Deterministic surfaces are rule replays over recorded fields; evaluative surfaces are counterfactual estimates and are not what-would-have-happened claims.",
+  "counterfactual": {
+    "decision": "deny",
+    "decision_code": "BUDGET_EXCEEDED",
+    "matched_rules": [
+      "deny_budget_substitution"
+    ],
+    "policy_bundle_version": "sha256:e0d5563e9e046960f5435ab1e00f26df8925e16ca7a207ee37df65b7151bcb27",
+    "rationale": "counterfactual budget policy would block the recorded step"
+  },
+  "decision_id": "pder_code_review_read_diff_0001",
+  "diff": {
+    "approval_delta": null,
+    "budget_delta": {
+      "budget_cap_active": true,
+      "cost_trace_changed": true,
+      "counterfactual_total_usd": 0,
+      "original_total_usd": 0.01,
+      "termination_code": "BUDGET_EXCEEDED",
+      "termination_step": 1
+    },
+    "decision_changed": true,
+    "model_delta": {
+      "counterfactual_label": "counterfactual estimate",
+      "original_model_version": "0.1.0",
+      "original_provider": "operational-evidence-plane-reference",
+      "substituted_model_version": "anthropic.claude-opus-4-6",
+      "substituted_provider": "bedrock"
+    },
+    "rationale_changed": true,
+    "rule_set_delta": {
+      "added": [
+        "deny_budget_substitution"
+      ],
+      "removed": [
+        "allow_reference_code_review_diff_read"
+      ],
+      "unchanged": []
+    },
+    "surface_delta": {
+      "absent_surfaces": [],
+      "changed_surfaces": [
+        "model"
+      ],
+      "surfaces": {
+        "model": {
+          "after_version": "bedrock:anthropic.claude-opus-4-6",
+          "attribution_confidence": 1.0,
+          "before_version": "deterministic-mock-reviewer@0.1.0",
+          "change_class": "alias_resolution",
+          "status": "changed"
+        }
+      }
+    },
+    "workflow_delta": null
+  },
+  "original": {
+    "decision": "allow",
+    "matched_rules": [
+      "allow_reference_code_review_diff_read"
+    ],
+    "policy_bundle_version": "sha256:e0d5563e9e046960f5435ab1e00f26df8925e16ca7a207ee37df65b7151bcb27",
+    "rationale": "reference code review agent may inspect an immutable synthetic diff"
+  },
+  "replay_metadata": {
+    "determinism_exclusions": [
+      "replay_metadata.replay_timestamp_utc"
+    ],
+    "nd_builtin_cache_entries_used": 0,
+    "oep_replay_mode": "counterfactual",
+    "replay_class": "evaluative",
+    "replay_timestamp_utc": "2026-06-02T00:00:00Z",
+    "substituted_surfaces": {
+      "budget": "per_run_cap_usd=0.005",
+      "model": "bedrock:anthropic.claude-opus-4-6"
+    }
+  },
+  "replay_mode": "counterfactual",
+  "schema_version": "oep.counterfactual_replay.v0"
+}

@@ -1,0 +1,47 @@
+{
+  "schema_version": "oep.human_review_event.v0",
+  "event_id": "hrev_code_review_approved_0001",
+  "event_time": "2026-05-04T00:05:00Z",
+  "event_type": "human_review.approved",
+  "reviewed_decision_ref": {
+    "event_id": "evt_code_review_agent_step_0001",
+    "trace_id": "11111111111111111111111111111111",
+    "span_id": "2222222222222222",
+    "decision_record_ref": "events/examples/code_review_agent_step.v0.json"
+  },
+  "reviewer": {
+    "type": "human",
+    "id": "user_senior_reviewer_01",
+    "display_name": "Senior Reviewer",
+    "authority": {
+      "role": "senior_code_reviewer",
+      "basis": "RBAC:approve_merge",
+      "scope": "repo:demo/* diff<=500loc"
+    }
+  },
+  "context_as_shown": {
+    "sha256": "sha256:f8050837038f13d5e3bd509f7c885293fc97b1f3da9147396d104a812afe56aa",
+    "ref": "events/examples/human_review/context_code_review.md",
+    "media_type": "text/markdown"
+  },
+  "action": {
+    "outcome": "approved",
+    "captured_at": "2026-05-04T00:05:00Z",
+    "rationale_ref": null
+  },
+  "decision_binding": {
+    "reviewed_decision_digest": "sha256:571de648706e258e844bae4a84e20df815fb2f3bc77440e6a6dbd4097082cf53",
+    "context_digest": "sha256:f8050837038f13d5e3bd509f7c885293fc97b1f3da9147396d104a812afe56aa",
+    "binding_digest": "sha256:0b3da95443dd153abfee016c6fa66611d23de2af3059ea764f9af43ed00eb88b",
+    "algorithm": "oep.human_review_binding.v0"
+  },
+  "env": {
+    "release_manifest_id": "rmf_code_review_agent_2026_05_04_v0",
+    "policy_bundle_version": null
+  },
+  "links": {
+    "reviewed_event_ref": "events/examples/code_review_agent_step.v0.json",
+    "context_ref": "events/examples/human_review/context_code_review.md",
+    "trace_ref": null
+  }
+}

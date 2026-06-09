@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://operational-evidence-plane.local/schema/human_review_event.v0.schema.json",
+  "title": "Operational Evidence Plane Human Review Event v0",
+  "description": "Reconstructable, tamper-evident record of a human review of a specific AI decision: who reviewed it (with what authority), the exact context shown to them at review time, the action taken, and a cryptographic binding to the reviewed decision. Distinct from a workflow approval flag — it is a first-class evidence event that can be reconstructed and re-verified after the fact, so the review survives as a control artifact rather than a status transition.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "event_time",
+    "event_type",
+    "reviewed_decision_ref",
+    "reviewer",
+    "context_as_shown",
+    "action",
+    "decision_binding"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "oep.human_review_event.v0"
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^hrev_[a-z0-9][a-z0-9_-]*$"
+    },
+    "event_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "human_review.approved",
+        "human_review.rejected",
+        "human_review.modified"
+      ]
+    },
+    "reviewed_decision_ref": {
+      "$ref": "#/$defs/reviewed_decision_ref"
+    },
+    "reviewer": {
+      "$ref": "#/$defs/reviewer"
+    },
+    "context_as_shown": {
+      "$ref": "#/$defs/context_as_shown"
+    },
+    "action": {
+      "$ref": "#/$defs/action"
+    },
+    "decision_binding": {
+      "$ref": "#/$defs/decision_binding"
+    },
+    "env": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "#/$defs/env"}
+      ]
+    },
+    "links": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "#/$defs/links"}
+      ]
+    }
+  },
+  "$defs": {
+    "reviewed_decision_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_id", "trace_id", "span_id"],
+      "properties": {
+        "event_id": {"type": "string", "pattern": "^evt_[a-z0-9][a-z0-9_-]*$"},
+        "trace_id": {"type": "string", "pattern": "^[a-f0-9]{32}$"},
+        "span_id": {"type": "string", "pattern": "^[a-f0-9]{16}$"},
+        "decision_record_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "display_name", "authority"],
+      "properties": {
+        "type": {"type": "string", "const": "human"},
+        "id": {"type": "string", "minLength": 1},
+        "display_name": {"type": "string", "minLength": 1},
+        "authority": {"$ref": "#/$defs/authority"}
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "basis", "scope"],
+      "properties": {
+        "role": {"type": "string", "minLength": 1},
+        "basis": {"type": "string", "minLength": 1},
+        "scope": {"type": "string", "minLength": 1}
+      }
+    },
+    "context_as_shown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "ref", "media_type"],
+      "properties": {
+        "sha256": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "ref": {"type": "string", "minLength": 1},
+        "media_type": {"type": "string", "minLength": 1}
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "captured_at"],
+      "properties": {
+        "outcome": {"type": "string", "enum": ["approved", "rejected", "modified"]},
+        "captured_at": {"type": "string", "format": "date-time"},
+        "rationale_ref": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        }
+      }
+    },
+    "decision_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewed_decision_digest", "context_digest", "binding_digest", "algorithm"],
+      "properties": {
+        "reviewed_decision_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "context_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "binding_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "algorithm": {"type": "string", "const": "oep.human_review_binding.v0"}
+      }
+    },
+    "env": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["release_manifest_id", "policy_bundle_version"],
+      "properties": {
+        "release_manifest_id": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "pattern": "^rmf_[a-z0-9][a-z0-9_-]*$"}
+          ]
+        },
+        "policy_bundle_version": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+          ]
+        }
+      }
+    },
+    "links": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewed_event_ref"],
+      "properties": {
+        "reviewed_event_ref": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        },
+        "context_ref": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        },
+        "trace_ref": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1}
+          ]
+        }
+      }
+    }
+  }
+}
