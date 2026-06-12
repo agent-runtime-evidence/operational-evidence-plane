@@ -160,11 +160,7 @@ def _resolve_opa_command_wrapper_executable(executable: str) -> str:
 
 def _opa_command_wrapper_search_path() -> str:
     path = os.environ.get("PATH", os.defpath)
-    entries = [
-        entry
-        for entry in path.split(os.pathsep)
-        if _is_absolute_opa_wrapper_search_path_entry(entry)
-    ]
+    entries = [entry for entry in path.split(os.pathsep) if _is_absolute_opa_wrapper_search_path_entry(entry)]
     return os.pathsep.join(entries)
 
 
@@ -210,11 +206,7 @@ def _trusted_windows_opa_wrapper_roots() -> tuple[str, ...]:
         WINDOWS_SYSTEM_ROOT_FALLBACK,
     )
     roots = [ntpath.join(system_root, "System32")]
-    roots.extend(
-        value
-        for name in WINDOWS_TRUSTED_OPA_WRAPPER_ROOT_ENV_NAMES
-        if (value := os.environ.get(name))
-    )
+    roots.extend(value for name in WINDOWS_TRUSTED_OPA_WRAPPER_ROOT_ENV_NAMES if (value := os.environ.get(name)))
     return tuple(ntpath.normcase(ntpath.normpath(root)) for root in roots)
 
 
@@ -230,8 +222,7 @@ def _validate_opa_command_wrapper(wrapper_args: Sequence[str]) -> None:
     if executable not in ALLOWED_OPA_COMMAND_WRAPPERS:
         allowed = ", ".join(sorted(ALLOWED_OPA_COMMAND_WRAPPERS))
         raise OpaEvaluationError(
-            f"unauthorized {OEP_OPA_COMMAND_WRAPPER_ENV} executable: {executable!r}. "
-            f"Allowed wrappers: {allowed}"
+            f"unauthorized {OEP_OPA_COMMAND_WRAPPER_ENV} executable: {executable!r}. Allowed wrappers: {allowed}"
         )
     if executable == "docker":
         _validate_docker_opa_command_wrapper(wrapper_args)

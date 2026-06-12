@@ -77,8 +77,7 @@ def reconstruct_decisions(
     replay_state_path = Path(state_path)
     if not replay_state_path.is_file():
         raise StateNotFoundError(
-            f"replay state not found at {replay_state_path}. "
-            "Run `oep-run-demo` or `make verify` to regenerate it."
+            f"replay state not found at {replay_state_path}. Run `oep-run-demo` or `make verify` to regenerate it."
         )
 
     try:
@@ -181,13 +180,11 @@ def _sqlite_batch_variable_limit() -> int:
         limit = int(raw_limit)
     except ValueError as exc:
         raise ReplayError(
-            f"{OEP_SQLITE_BATCH_VARIABLE_LIMIT_ENV} must be an integer between 1 "
-            f"and {MAX_SQLITE_BATCH_VARIABLE_LIMIT}"
+            f"{OEP_SQLITE_BATCH_VARIABLE_LIMIT_ENV} must be an integer between 1 and {MAX_SQLITE_BATCH_VARIABLE_LIMIT}"
         ) from exc
     if not 1 <= limit <= MAX_SQLITE_BATCH_VARIABLE_LIMIT:
         raise ReplayError(
-            f"{OEP_SQLITE_BATCH_VARIABLE_LIMIT_ENV} must be an integer between 1 "
-            f"and {MAX_SQLITE_BATCH_VARIABLE_LIMIT}"
+            f"{OEP_SQLITE_BATCH_VARIABLE_LIMIT_ENV} must be an integer between 1 and {MAX_SQLITE_BATCH_VARIABLE_LIMIT}"
         )
     return limit
 

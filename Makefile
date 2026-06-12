@@ -148,6 +148,7 @@ test-policy: check-opa-dependency
 
 lint:
 	$(PYTHON) -m ruff check .
+	$(PYTHON) -m ruff format --check .
 
 typecheck:
 	$(PYTHON) -m mypy manifest events permissions traces playbooks demo oep_verify replay tests translations integrations scripts

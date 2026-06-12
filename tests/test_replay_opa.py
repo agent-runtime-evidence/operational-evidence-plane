@@ -120,7 +120,7 @@ def test_counterfactual_replay_reports_opa_timeout_and_stdout_failure(
             DECISION_ID,
             policy_path,
             replay_timestamp_utc=FIXED_REPLAY_TIMESTAMP,
-    )
+        )
     assert "[output truncated]" in str(exc_info.value)
     assert "UNTRUNCATED_SUFFIX" not in str(exc_info.value)
 
@@ -301,7 +301,7 @@ def test_counterfactual_replay_rejects_invalid_opa_command_wrapper(
 ) -> None:
     policy_path = ROOT / "permissions" / "policy" / "tool_permissions.rego"
 
-    monkeypatch.setenv(replay_module.OEP_OPA_COMMAND_WRAPPER_ENV, "\"unterminated")
+    monkeypatch.setenv(replay_module.OEP_OPA_COMMAND_WRAPPER_ENV, '"unterminated')
 
     with pytest.raises(ReplayError, match="OEP_OPA_COMMAND_WRAPPER could not be parsed"):
         counterfactual_replay_decision(

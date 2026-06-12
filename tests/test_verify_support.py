@@ -69,10 +69,7 @@ def test_verify_support_rejects_invalid_helper_inputs(
 
     fake_opa = tmp_path / "opa"
     fake_opa.write_text(
-        "#!/bin/sh\n"
-        "if [ \"$1\" = \"version\" ]; then\n"
-        "  echo 'Version: 1.7.1'\n"
-        "fi\n",
+        '#!/bin/sh\nif [ "$1" = "version" ]; then\n  echo \'Version: 1.7.1\'\nfi\n',
         encoding="utf-8",
     )
     fake_opa.chmod(0o755)

@@ -188,10 +188,7 @@ def test_demo_1_compound_reliability_counterfactual(tmp_path: Path) -> None:
     assert summary["step_outputs"][4]["counterfactual"]["decision"] == "deny"
     assert summary["step_outputs"][4]["diff"]["decision_changed"] is True
 
-    jsonl_records = [
-        json.loads(line)
-        for line in first.jsonl_path.read_text(encoding="utf-8").splitlines()
-    ]
+    jsonl_records = [json.loads(line) for line in first.jsonl_path.read_text(encoding="utf-8").splitlines()]
     assert jsonl_records == summary["step_outputs"]
 
 
@@ -282,10 +279,7 @@ def test_demo_2_budget_per_run_counterfactual(tmp_path: Path) -> None:
         "termination_step": 6,
     }
 
-    jsonl_records = [
-        json.loads(line)
-        for line in first.jsonl_path.read_text(encoding="utf-8").splitlines()
-    ]
+    jsonl_records = [json.loads(line) for line in first.jsonl_path.read_text(encoding="utf-8").splitlines()]
     assert jsonl_records == summary["step_outputs"]
 
 
@@ -334,10 +328,7 @@ def test_demo_3_approval_escalation_counterfactual(tmp_path: Path) -> None:
     assert summary["step_outputs"][4]["counterfactual"]["decision_code"] == "APPROVAL_REQUIRED"
     assert summary["step_outputs"][5]["counterfactual"]["decision"] == "allow"
 
-    jsonl_records = [
-        json.loads(line)
-        for line in first.jsonl_path.read_text(encoding="utf-8").splitlines()
-    ]
+    jsonl_records = [json.loads(line) for line in first.jsonl_path.read_text(encoding="utf-8").splitlines()]
     assert jsonl_records == summary["step_outputs"]
 
 

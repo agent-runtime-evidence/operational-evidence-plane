@@ -136,10 +136,7 @@ def decision_surface_presence(
     record = reconstruct_decision(state_path, decision_id, validate_schema=validate_schema)
     metadata = _decision_metadata(record)
     surface_names = ("permission", "cost", "drift", "cache", "identity")
-    surfaces = {
-        name: {"present": isinstance(metadata.get(name), dict)}
-        for name in surface_names
-    }
+    surfaces = {name: {"present": isinstance(metadata.get(name), dict)} for name in surface_names}
     absent = [name for name in surface_names if not surfaces[name]["present"]]
     return {
         "schema_version": "oep.decision_surface_presence.v0",
@@ -167,10 +164,7 @@ def diff_decision_surfaces(
         [decision_id_a, decision_id_b],
         validate_schema=validate_schema,
     )
-    surface_rows = {
-        surface: _surface_diff_row(before, after, surface)
-        for surface in requested_surfaces
-    }
+    surface_rows = {surface: _surface_diff_row(before, after, surface) for surface in requested_surfaces}
     changed = [surface for surface in requested_surfaces if surface_rows[surface]["status"] == "changed"]
     absent = [surface for surface in requested_surfaces if surface_rows[surface]["status"] == "not_recorded"]
     return {
@@ -719,7 +713,8 @@ def _snapshot_from_record(record: ReplayRecord) -> dict[str, Any]:
     decision = _require_object(record.permission_packet.get("decision"), "decision")
     policy = _require_object(record.permission_packet.get("policy"), "policy")
     return {
-        "policy_bundle_version": record.policy_bundle_version or _require_string(
+        "policy_bundle_version": record.policy_bundle_version
+        or _require_string(
             policy.get("policy_version"),
             "policy.policy_version",
         ),

@@ -39,13 +39,7 @@ from oep_verify.verify_support import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_LG_EVENT = (
-    REPO_ROOT
-    / "integrations"
-    / "langgraph"
-    / "examples"
-    / "code_review_langgraph_checkpoint.v0.json"
-)
+DEFAULT_LG_EVENT = REPO_ROOT / "integrations" / "langgraph" / "examples" / "code_review_langgraph_checkpoint.v0.json"
 DEFAULT_COMPARE = REPO_ROOT / "permissions" / "examples" / "code_review_tool_permission.v0.json"
 DEFAULT_SCHEMA = REPO_ROOT / "permissions" / "schema" / "tool_permission_packet.v0.schema.json"
 
@@ -77,9 +71,7 @@ def project_to_oep_permission(lg_event: dict[str, Any]) -> dict[str, Any]:
     state_snapshot = _required(langgraph.get("state_snapshot"), "langgraph.state_snapshot")
     values = _required(state_snapshot.get("values"), "langgraph.state_snapshot.values")
     tool = _required(values.get("tool"), "langgraph.state_snapshot.values.tool")
-    requested_action = _required(
-        values.get("requested_action"), "langgraph.state_snapshot.values.requested_action"
-    )
+    requested_action = _required(values.get("requested_action"), "langgraph.state_snapshot.values.requested_action")
     resource = _required(values.get("resource"), "langgraph.state_snapshot.values.resource")
 
     wrapper = _required(lg_event.get("wrapper"), "wrapper")
@@ -91,16 +83,10 @@ def project_to_oep_permission(lg_event: dict[str, Any]) -> dict[str, Any]:
     return {
         "schema_version": OEP_SCHEMA_VERSION,
         "packet_id": _required(session.get("packet_id"), "wrapper.session.packet_id"),
-        "decision_time": _required(
-            session.get("decision_time"), "wrapper.session.decision_time"
-        ),
-        "release_manifest_id": _required(
-            session.get("release_manifest_id"), "wrapper.session.release_manifest_id"
-        ),
+        "decision_time": _required(session.get("decision_time"), "wrapper.session.decision_time"),
+        "release_manifest_id": _required(session.get("release_manifest_id"), "wrapper.session.release_manifest_id"),
         "event_id": _required(session.get("event_id"), "wrapper.session.event_id"),
-        "tool_call_id": _required(
-            session.get("tool_call_id"), "wrapper.session.tool_call_id"
-        ),
+        "tool_call_id": _required(session.get("tool_call_id"), "wrapper.session.tool_call_id"),
         "trace_id": _required(session.get("trace_id"), "wrapper.session.trace_id"),
         "span_id": _required(session.get("span_id"), "wrapper.session.span_id"),
         "actor": actor,
@@ -120,18 +106,12 @@ def project_to_oep_permission(lg_event: dict[str, Any]) -> dict[str, Any]:
         },
         "tool": {
             "name": _required(tool.get("name"), "langgraph.state_snapshot.values.tool.name"),
-            "version": _required(
-                tool.get("version"), "langgraph.state_snapshot.values.tool.version"
-            ),
-            "operation": _required(
-                tool.get("operation"), "langgraph.state_snapshot.values.tool.operation"
-            ),
+            "version": _required(tool.get("version"), "langgraph.state_snapshot.values.tool.version"),
+            "operation": _required(tool.get("operation"), "langgraph.state_snapshot.values.tool.operation"),
         },
         "resource": resource,
         "policy": _required(policy_response.get("policy_ref"), "wrapper.policy_response.policy_ref"),
-        "decision": _required(
-            policy_response.get("decision"), "wrapper.policy_response.decision"
-        ),
+        "decision": _required(policy_response.get("decision"), "wrapper.policy_response.decision"),
         "scoped_credential_lifetime": session.get("scoped_credential_lifetime"),
         "approval_capture": session.get("approval_capture"),
         "policy_bundle_version": session.get("policy_bundle_version"),
@@ -141,9 +121,7 @@ def project_to_oep_permission(lg_event: dict[str, Any]) -> dict[str, Any]:
         "model_provider": model_binding.get("provider"),
         "decision_id": session.get("decision_id"),
         "links": _required(policy_response.get("links"), "wrapper.policy_response.links"),
-        "claim_boundary": _required(
-            session.get("claim_boundary"), "wrapper.session.claim_boundary"
-        ),
+        "claim_boundary": _required(session.get("claim_boundary"), "wrapper.session.claim_boundary"),
     }
 
 

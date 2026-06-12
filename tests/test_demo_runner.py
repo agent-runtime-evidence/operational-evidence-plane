@@ -210,11 +210,7 @@ def test_replay_schema_enforces_foreign_keys(tmp_path: Path) -> None:
         assert "idx_permissions_event_id" in index_names
         assert "idx_findings_event_trace" in index_names
 
-        event_unique_indexes = [
-            row
-            for row in connection.execute("PRAGMA index_list('events')").fetchall()
-            if row[2]
-        ]
+        event_unique_indexes = [row for row in connection.execute("PRAGMA index_list('events')").fetchall() if row[2]]
         assert len(event_unique_indexes) == 1
 
         with pytest.raises(sqlite3.IntegrityError):

@@ -237,8 +237,7 @@ def run_budget_per_run_counterfactual(
             "budget_cap_active_at_termination": True,
         },
         "cost_trace": [
-            _budget_cost_trace_row(index, termination_step)
-            for index in range(1, BUDGET_PER_RUN_STEP_COUNT + 1)
+            _budget_cost_trace_row(index, termination_step) for index in range(1, BUDGET_PER_RUN_STEP_COUNT + 1)
         ],
         "step_outputs": step_outputs,
         "claim_boundary": (
@@ -373,9 +372,7 @@ def _compound_trace(manifest: dict[str, Any]) -> dict[str, Any]:
         "release_manifest_id": manifest["manifest_id"],
         "status": "succeeded",
         "summary": "Synthetic 10-step code-review workflow for compound reliability counterfactual replay.",
-        "permission_packet_refs": [
-            _decision_id(index) for index in range(1, COMPOUND_RELIABILITY_STEP_COUNT + 1)
-        ],
+        "permission_packet_refs": [_decision_id(index) for index in range(1, COMPOUND_RELIABILITY_STEP_COUNT + 1)],
     }
 
 

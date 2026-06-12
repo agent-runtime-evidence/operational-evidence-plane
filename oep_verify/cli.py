@@ -89,10 +89,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     replay_parser = subparsers.add_parser(
         "replay",
-        help=(
-            "Reconstruct the recorded permission trace for a decision id from "
-            "local SQLite replay state."
-        ),
+        help=("Reconstruct the recorded permission trace for a decision id from local SQLite replay state."),
         description=(
             "Reconstruct the recorded permission trace for a decision id "
             "(the `pder_*` packet identifier) from the local SQLite replay "
@@ -122,17 +119,13 @@ def _build_parser() -> argparse.ArgumentParser:
         "--field",
         action="append",
         default=None,
-        help=(
-            "Optional record field to print on its own line instead of the "
-            "full JSON record. May be repeated."
-        ),
+        help=("Optional record field to print on its own line instead of the full JSON record. May be repeated."),
     )
     replay_parser.add_argument(
         "--counterfactual",
         action="store_true",
         help=(
-            "Enable v0.3 counterfactual policy replay. Equivalent to "
-            "OEP_REPLAY_MODE=counterfactual for this command."
+            "Enable v0.3 counterfactual policy replay. Equivalent to OEP_REPLAY_MODE=counterfactual for this command."
         ),
     )
     replay_parser.add_argument(
@@ -149,10 +142,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output-format",
         choices=("json", "jsonl", "human"),
         default=None,
-        help=(
-            "Output format. Read-only replay defaults to json; "
-            "counterfactual replay defaults to human."
-        ),
+        help=("Output format. Read-only replay defaults to json; counterfactual replay defaults to human."),
     )
     replay_parser.add_argument(
         "--replay-timestamp-utc",

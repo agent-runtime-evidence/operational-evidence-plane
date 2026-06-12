@@ -1,6 +1,5 @@
 """Shared constants and helpers for the test suite."""
 
-
 from __future__ import annotations
 
 import hashlib
@@ -35,6 +34,7 @@ VERIFY_SCRIPTS = (
     ("scripts/check_public_docs.py", "Public documentation checks passed"),
 )
 
+
 def load_script_module(relative_path: str, module_name: str) -> ModuleType:
     spec = importlib.util.spec_from_file_location(module_name, ROOT / relative_path)
     assert spec is not None
@@ -42,6 +42,7 @@ def load_script_module(relative_path: str, module_name: str) -> ModuleType:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
 
 def run_script(
     relative_path: str,
@@ -58,6 +59,7 @@ def run_script(
         text=True,
     )
     return result.stdout
+
 
 class _FakeOpaProcess:
     pid = 999_999
@@ -105,6 +107,7 @@ class _FakeOpaProcess:
         self.waited = True
         return self.returncode
 
+
 def _sqlite_payload(state_path: Path, query: str, parameters: tuple[object, ...]) -> dict[str, Any]:
     connection = sqlite3.connect(state_path)
     try:
@@ -115,6 +118,7 @@ def _sqlite_payload(state_path: Path, query: str, parameters: tuple[object, ...]
         return payload
     finally:
         connection.close()
+
 
 def _sqlite_update_payload(
     state_path: Path,
@@ -129,6 +133,7 @@ def _sqlite_update_payload(
         parameters,
     )
 
+
 def _sqlite_update_raw_payload(
     state_path: Path,
     query: str,
@@ -142,6 +147,7 @@ def _sqlite_update_raw_payload(
     finally:
         connection.close()
 
+
 def _sqlite_values(state_path: Path, query: str) -> list[object]:
     connection = sqlite3.connect(state_path)
     try:
@@ -149,25 +155,27 @@ def _sqlite_values(state_path: Path, query: str) -> list[object]:
     finally:
         connection.close()
 
+
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
+
 SQLITE_ROW_COUNT_TABLES = frozenset(("artifacts", "events", "permissions", "traces", "findings", "evals"))
+
 
 def _sqlite_row_counts(state_path: Path) -> dict[str, int]:
     connection = sqlite3.connect(state_path)
     try:
-        return {
-            table: _sqlite_row_count(connection, table)
-            for table in sorted(SQLITE_ROW_COUNT_TABLES)
-        }
+        return {table: _sqlite_row_count(connection, table) for table in sorted(SQLITE_ROW_COUNT_TABLES)}
     finally:
         connection.close()
+
 
 def _sqlite_row_count(connection: sqlite3.Connection, table: str) -> int:
     if table not in SQLITE_ROW_COUNT_TABLES:
         raise ValueError(f"invalid replay-state table: {table}")
     return int(connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+
 
 def _inject_nd_builtin_cache(state_path: Path, nd_builtin_cache: dict[str, object]) -> None:
     connection = sqlite3.connect(state_path)
@@ -186,6 +194,7 @@ def _inject_nd_builtin_cache(state_path: Path, nd_builtin_cache: dict[str, objec
         connection.commit()
     finally:
         connection.close()
+
 
 def _write_deny_policy(tmp_path: Path) -> Path:
     alt_policy_path = tmp_path / "counterfactual_policy.rego"

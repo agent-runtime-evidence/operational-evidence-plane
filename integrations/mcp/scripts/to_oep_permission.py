@@ -62,9 +62,7 @@ def project_to_oep_permission(mcp_event: dict[str, Any]) -> dict[str, Any]:
         "schema_version": OEP_SCHEMA_VERSION,
         "packet_id": _required(session.get("packet_id"), "session.packet_id"),
         "decision_time": _required(session.get("decision_time"), "session.decision_time"),
-        "release_manifest_id": _required(
-            session.get("release_manifest_id"), "session.release_manifest_id"
-        ),
+        "release_manifest_id": _required(session.get("release_manifest_id"), "session.release_manifest_id"),
         "event_id": _required(session.get("event_id"), "session.event_id"),
         "tool_call_id": _required(request.get("id"), "request.id"),
         "trace_id": _required(session.get("trace_id"), "session.trace_id"),

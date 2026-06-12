@@ -19,7 +19,8 @@ from oep_verify.cli import main as cli_main
 
 
 def test_counterfactual_replay_cli_outputs_json_and_human(
-    tmp_path: Path, state_path: Path,
+    tmp_path: Path,
+    state_path: Path,
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -62,9 +63,7 @@ def test_counterfactual_replay_cli_outputs_json_and_human(
     stripped_output = json.loads(capsys.readouterr().out)
     assert stripped_output["replay_mode"] == "counterfactual"
     assert "replay_timestamp_utc" not in stripped_output["replay_metadata"]
-    assert stripped_output["replay_metadata"]["determinism_exclusions"] == [
-        "replay_metadata.replay_timestamp_utc"
-    ]
+    assert stripped_output["replay_metadata"]["determinism_exclusions"] == ["replay_metadata.replay_timestamp_utc"]
 
     cli_main(
         [

@@ -366,8 +366,7 @@ def packaged_resource_sync_errors(
             errors.append(f"missing packaged resource: {artifact.packaged_display_path}")
         elif canonical.read_bytes() != packaged.read_bytes():
             errors.append(
-                f"packaged resource drift: {artifact.packaged_display_path} "
-                f"differs from {artifact.canonical_path}"
+                f"packaged resource drift: {artifact.packaged_display_path} differs from {artifact.canonical_path}"
             )
 
     return errors

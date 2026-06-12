@@ -36,9 +36,7 @@ def iter_files(globs: Iterable[str]) -> list[Path]:
     for pattern in globs:
         files.update(ROOT.glob(pattern))
     return sorted(
-        path
-        for path in files
-        if path.is_file() and not any(part in {".git", ".venv"} for part in path.parts)
+        path for path in files if path.is_file() and not any(part in {".git", ".venv"} for part in path.parts)
     )
 
 

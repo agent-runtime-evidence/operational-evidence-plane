@@ -3,4 +3,3 @@
 from oep_manifest.paths import EXAMPLE_PATH, SCHEMA_PATH
 
 __all__ = ["EXAMPLE_PATH", "SCHEMA_PATH"]
-

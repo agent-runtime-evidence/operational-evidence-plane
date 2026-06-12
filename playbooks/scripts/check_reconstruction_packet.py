@@ -53,8 +53,7 @@ def opa_decision(policy_input_path: Path) -> dict[str, Any]:
 
 def has_blocking_loss(losses: list[Any], field: str) -> bool:
     return any(
-        isinstance(item, dict) and item.get("field") == field and item.get("severity") == "blocking"
-        for item in losses
+        isinstance(item, dict) and item.get("field") == field and item.get("severity") == "blocking" for item in losses
     )
 
 

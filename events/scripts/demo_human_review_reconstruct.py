@@ -101,9 +101,7 @@ def build_event(
         "decision_binding": {
             "reviewed_decision_digest": reviewed_digest,
             "context_digest": context_digest,
-            "binding_digest": binding_digest(
-                reviewed_ref, reviewed_digest, context_digest, reviewer, outcome
-            ),
+            "binding_digest": binding_digest(reviewed_ref, reviewed_digest, context_digest, reviewer, outcome),
             "algorithm": BINDING_ALGORITHM,
         },
         "env": {
@@ -163,8 +161,10 @@ def validate_against_schema(events: list[JsonObject]) -> None:
         total += len(errors)
         for error in errors[:5]:
             print(f"  SCHEMA ERROR {list(error.absolute_path)}: {error.message}")
-    print(f"schema validation : {'OK' if total == 0 else f'{total} error(s)'} "
-          f"(against {SCHEMA_PATH.relative_to(REPO_ROOT)})")
+    print(
+        f"schema validation : {'OK' if total == 0 else f'{total} error(s)'} "
+        f"(against {SCHEMA_PATH.relative_to(REPO_ROOT)})"
+    )
     if total:
         raise SystemExit(2)
 
@@ -230,8 +230,7 @@ def main() -> int:
     }
     for path, event in emitted.items():
         path.write_text(json.dumps(event, indent=2) + "\n", encoding="utf-8")
-    print(f"EMIT       : {len(emitted)} human_review_event.v0 records -> "
-          f"{EMIT_DIR.relative_to(REPO_ROOT)}/")
+    print(f"EMIT       : {len(emitted)} human_review_event.v0 records -> {EMIT_DIR.relative_to(REPO_ROOT)}/")
     validate_against_schema(list(emitted.values()))
 
     print("\n== RECONSTRUCT (from stored telemetry only) ==")
@@ -244,8 +243,10 @@ def main() -> int:
         authority = reviewer["authority"]
         ref = event["reviewed_decision_ref"]
         print(f"- {event['event_id']}")
-        print(f"    reviewer : {reviewer['display_name']} "
-              f"(role={authority['role']}; basis={authority['basis']}; scope={authority['scope']})")
+        print(
+            f"    reviewer : {reviewer['display_name']} "
+            f"(role={authority['role']}; basis={authority['basis']}; scope={authority['scope']})"
+        )
         print(f"    decision : {ref['event_id']} (trace {ref['trace_id'][:8]}..., span {ref['span_id'][:8]}...)")
         print(f"    context  : {event['context_as_shown']['ref']} [{event['context_as_shown']['sha256'][:23]}...]")
         print(f"    outcome  : {event['action']['outcome']} at {event['action']['captured_at']}")
@@ -275,9 +276,10 @@ def main() -> int:
     print(f"reconstruct+verify : {'OK' if all_ok else 'FAIL'}")
     print(f"tamper context     : {'fails closed' if not ok_a else 'DID NOT FAIL'}")
     print(f"re-point decision  : {'fails closed' if not ok_b else 'DID NOT FAIL'}")
-    print("RESULT             : "
-          + ("PASS - human review is reconstructable AND tamper-evident"
-             if success else "FAIL - claim not backed"))
+    print(
+        "RESULT             : "
+        + ("PASS - human review is reconstructable AND tamper-evident" if success else "FAIL - claim not backed")
+    )
     return 0 if success else 1
 
 

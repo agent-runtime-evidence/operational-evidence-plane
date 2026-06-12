@@ -239,10 +239,7 @@ def test_batch_reconstruction_caches_trace_and_manifest_payloads(
     monkeypatch.setattr("oep_permissions.replay.storage._loads_object", counting_loads_object)
     records = replay_module.reconstruct_decisions(
         result.state_path,
-        [
-            f"pder_code_review_compound_reliability_step_{index:04d}"
-            for index in range(1, result.total_steps + 1)
-        ],
+        [f"pder_code_review_compound_reliability_step_{index:04d}" for index in range(1, result.total_steps + 1)],
     )
 
     assert len(records) == result.total_steps

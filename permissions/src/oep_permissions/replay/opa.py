@@ -143,8 +143,7 @@ def _evaluate_opa_decisions(
             )
         if not isinstance(value, dict):
             raise OpaEvaluationError(
-                f"counterfactual OPA evaluation returned invalid decision type for input {index + 1}: "
-                "expected object"
+                f"counterfactual OPA evaluation returned invalid decision type for input {index + 1}: expected object"
             )
         decisions.append(value)
     return decisions

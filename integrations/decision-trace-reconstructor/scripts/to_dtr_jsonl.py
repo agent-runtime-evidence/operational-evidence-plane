@@ -76,9 +76,7 @@ def from_agent_step_event(event: JsonRecord) -> tuple[JsonRecord, JsonRecord]:
         "kind": "prompt",
         "actor_id": actor_id,
         "tier": "within_stack",
-        "content": (
-            f"OEP agent step: {action.get('name', action.get('action_type', 'agent_step'))}"
-        ),
+        "content": (f"OEP agent step: {action.get('name', action.get('action_type', 'agent_step'))}"),
         "release_manifest_id": event.get("release_manifest_id"),
     }
     tool = {

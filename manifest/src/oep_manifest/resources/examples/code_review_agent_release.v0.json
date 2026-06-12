@@ -82,7 +82,7 @@
     },
     "workflow": {
       "binding_status": "resolved",
-      "digest": "sha256:909da37bef8e7e2ce3e632b415c01d0a94d250c99323b3dfa396ddecdce90bf3",
+      "digest": "sha256:bebd99407d03fa42d54931334343d7759a25af9f9f09847d1e90a7cb0c08309b",
       "evidence_role": "Binds the workflow package for deterministic review, permission check, trace emit, resource loading, and finding output.",
       "layer_type": "workflow",
       "name": "code-review-agent-workflow",

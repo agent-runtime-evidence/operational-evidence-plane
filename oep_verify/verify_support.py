@@ -389,17 +389,10 @@ def _validate_with_compiled_schema(
 ) -> None:
     errors = sorted(validator.iter_errors(instance), key=_validation_error_key)
     if errors:
-        formatted_errors = [
-            _format_validation_error(error)
-            for error in errors[:JSON_SCHEMA_VALIDATION_ERROR_LIMIT]
-        ]
+        formatted_errors = [_format_validation_error(error) for error in errors[:JSON_SCHEMA_VALIDATION_ERROR_LIMIT]]
         if len(errors) > JSON_SCHEMA_VALIDATION_ERROR_LIMIT:
-            formatted_errors.append(
-                f"... {len(errors) - JSON_SCHEMA_VALIDATION_ERROR_LIMIT} more validation error(s)"
-            )
-        raise ValueError(
-            f"{instance_path} failed JSON Schema validation: {'; '.join(formatted_errors)}"
-        )
+            formatted_errors.append(f"... {len(errors) - JSON_SCHEMA_VALIDATION_ERROR_LIMIT} more validation error(s)")
+        raise ValueError(f"{instance_path} failed JSON Schema validation: {'; '.join(formatted_errors)}")
 
 
 def _validation_error_key(error: ValidationError) -> tuple[str, str]:

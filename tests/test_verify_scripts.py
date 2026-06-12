@@ -127,7 +127,8 @@ def test_opa_policy_unit_tests_pass() -> None:
 
 
 def test_reconstruction_rejects_replay_state_ref_mismatch(
-    tmp_path: Path, state_path: Path,
+    tmp_path: Path,
+    state_path: Path,
 ) -> None:
     packet = load_json_object(ROOT / "playbooks" / "examples" / "code_review_reconstruction_packet.v0.json")
     packet["evidence_summary"]["replay_state"]["ref"] = "demo/state/other.sqlite"
@@ -150,7 +151,6 @@ def test_replay_cli_reconstructs_recorded_decision(tmp_path: Path, state_path: P
     from oep_permissions import ReplayError, reconstruct_decision
 
     from oep_verify.cli import main as cli_main
-
 
     record = reconstruct_decision(state_path, "pder_code_review_read_diff_0001")
     assert record.decision_id == "pder_code_review_read_diff_0001"
