@@ -432,7 +432,7 @@ dev = [
 requires-dist = [
     { name = "build", marker = "extra == 'dev'", specifier = ">=1,<2" },
     { name = "coverage", marker = "extra == 'dev'", specifier = ">=7,<8" },
-    { name = "jsonschema", extras = ["format"], specifier = ">=4.23,<5" },
+    { name = "jsonschema", extras = ["format"], specifier = ">=4.26.0,<5" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10,<2" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8,<9" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8,<1" },
