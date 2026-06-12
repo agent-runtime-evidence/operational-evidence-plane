@@ -73,6 +73,10 @@
     }
   },
   "$defs": {
+    "span_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{16}$"
+    },
     "span": {
       "type": "object",
       "additionalProperties": false,
@@ -87,11 +91,11 @@
         "checkpoint"
       ],
       "properties": {
-        "span_id": {"type": "string", "pattern": "^[a-f0-9]{16}$"},
+        "span_id": {"$ref": "#/$defs/span_id"},
         "parent_span_id": {
           "oneOf": [
             {"type": "null"},
-            {"type": "string", "pattern": "^[a-f0-9]{16}$"}
+            {"$ref": "#/$defs/span_id"}
           ]
         },
         "name": {"type": "string", "minLength": 1},

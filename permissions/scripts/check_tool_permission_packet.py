@@ -2,18 +2,16 @@
 
 from __future__ import annotations
 
-import json
-import subprocess
 from pathlib import Path
 from typing import Any
 
 from oep_permissions.paths import EXPECTED_SCHEMA_TITLE
 
 from oep_verify.verify_support import (
+    eval_opa_decision,
     load_json_object,
     require,
     require_datetime_not_after,
-    require_executable,
     require_json_object,
     validate_json_schema,
 )
@@ -29,27 +27,7 @@ MANIFEST_EXAMPLE_PATH = ROOT / "manifest" / "examples" / "code_review_agent_rele
 
 
 def opa_decision() -> dict[str, Any]:
-    opa = require_executable("opa", "permission packet validation")
-    result = subprocess.run(
-        [
-            opa,
-            "eval",
-            "--format",
-            "json",
-            "--data",
-            str(POLICY_PATH),
-            "--input",
-            str(INPUT_PATH),
-            "data.oep.permissions.decision",
-        ],
-        check=True,
-        capture_output=True,
-        encoding="utf-8",
-        text=True,
-    )
-    payload = json.loads(result.stdout)
-    value = payload["result"][0]["expressions"][0]["value"]
-    return require_json_object(value, "OPA decision must be an object")
+    return eval_opa_decision(POLICY_PATH, INPUT_PATH, "permission packet validation")
 
 
 def main() -> None:

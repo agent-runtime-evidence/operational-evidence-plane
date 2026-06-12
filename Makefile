@@ -4,6 +4,10 @@ else
 PYTHON ?= python3
 endif
 OPA ?= opa
+# Runner for validation scripts. Defaults to plain Python; the coverage
+# target overrides it with an instrumented runner so validation targets are
+# defined exactly once and stay in sync between `verify` and `coverage`.
+PY_RUN ?= $(PYTHON)
 PACKAGES := manifest events permissions traces playbooks demo replay oep_verify
 POLICY_TEST_FILES := $(wildcard permissions/policy/*.rego)
 COUNTERFACTUAL_POLICY_FILES := $(filter-out %_test.rego,$(wildcard permissions/policy/counterfactual/*.rego))
@@ -15,9 +19,9 @@ DTR_INTEGRATION_DIR := integrations/decision-trace-reconstructor
 DTR_SCENARIO ?= code_review_agent
 DTR_SCENARIOS ?= $(shell $(PYTHON) -c "from oep_verify.scenarios import scenario_names; print(' '.join(scenario_names()))")
 
-.PHONY: verify check-opa-dependency compile validate-manifest validate-events validate-permissions validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-langgraph validate-replay-cli validate-counterfactual-replay check-replay-determinism validate-counterfactual-schema validate-5surface-diff validate-cost-counterfactual validate-reserve-commit-release validate-cross-provider-drift validate-cache-substitution validate-identity-binding validate-composite validate-backward-compat check-docs check-permission-digests test test-policy coverage lint typecheck build-check sync-resources update-digests check-digests clean-state regen-dtr-jsonl check-dtr-jsonl validate-dtr
+.PHONY: verify check-opa-dependency compile validate-manifest validate-events validate-human-review validate-permissions validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-langgraph validate-replay-cli validate-counterfactual-replay check-replay-determinism validate-counterfactual-schema validate-v03-features validate-5surface-diff validate-cost-counterfactual validate-reserve-commit-release validate-cross-provider-drift validate-cache-substitution validate-identity-binding validate-composite validate-backward-compat check-docs check-permission-digests test test-policy coverage lint typecheck build-check sync-resources update-digests check-digests clean-state regen-dtr-jsonl check-dtr-jsonl validate-dtr
 
-verify: check-opa-dependency compile validate-manifest validate-events test-policy validate-permissions validate-counterfactual-schema validate-backward-compat validate-5surface-diff validate-cost-counterfactual validate-reserve-commit-release validate-cross-provider-drift validate-cache-substitution validate-identity-binding validate-composite check-permission-digests validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-langgraph validate-replay-cli validate-counterfactual-replay check-replay-determinism check-dtr-jsonl check-docs build-check
+verify: check-opa-dependency compile validate-manifest validate-events validate-human-review test-policy validate-permissions validate-counterfactual-schema validate-v03-features check-permission-digests validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-langgraph validate-replay-cli validate-counterfactual-replay check-replay-determinism check-dtr-jsonl check-docs build-check
 
 check-opa-dependency:
 	@command -v $(OPA) > /dev/null 2>&1 || (echo "Error: '$(OPA)' CLI is not installed or not on PATH. Install OPA CLI 1.x or set OPA=/path/to/opa." >&2; exit 1)
@@ -26,76 +30,87 @@ compile:
 	$(PYTHON) -m compileall -q $(PACKAGES)
 
 validate-manifest:
-	$(PYTHON) manifest/scripts/check_release_manifest.py
+	$(PY_RUN) manifest/scripts/check_release_manifest.py
 
 validate-events:
-	$(PYTHON) events/scripts/check_agent_step_event.py
+	$(PY_RUN) events/scripts/check_agent_step_event.py
+
+# Regenerates the committed human-review examples deterministically and
+# verifies the reconstruct + tamper-evidence claims behind the schema.
+validate-human-review:
+	$(PY_RUN) events/scripts/demo_human_review_reconstruct.py
 
 validate-permissions:
-	$(PYTHON) permissions/scripts/check_tool_permission_packet.py
+	$(PY_RUN) permissions/scripts/check_tool_permission_packet.py
 
 check-permission-digests:
-	$(PYTHON) permissions/scripts/update_permission_digests.py --check
+	$(PY_RUN) permissions/scripts/update_permission_digests.py --check
 
 validate-demo:
-	$(PYTHON) demo/scripts/run_code_review_demo.py
-	$(PYTHON) demo/scripts/check_replay_state.py
+	$(PY_RUN) demo/scripts/run_code_review_demo.py
+	$(PY_RUN) demo/scripts/check_replay_state.py
 
 validate-eval:
-	$(PYTHON) traces/scripts/check_eval_result.py
+	$(PY_RUN) traces/scripts/check_eval_result.py
 
 validate-traces:
-	$(PYTHON) traces/scripts/check_operational_trace.py
+	$(PY_RUN) traces/scripts/check_operational_trace.py
 
 validate-playbooks:
-	$(PYTHON) playbooks/scripts/check_reconstruction_packet.py
+	$(PY_RUN) playbooks/scripts/check_reconstruction_packet.py
 
 validate-bedrock:
-	$(PYTHON) translations/bedrock/scripts/check_bedrock_translation.py
+	$(PY_RUN) translations/bedrock/scripts/check_bedrock_translation.py
 
 validate-mcp:
-	$(PYTHON) integrations/mcp/scripts/to_oep_permission.py
+	$(PY_RUN) integrations/mcp/scripts/to_oep_permission.py
 
 validate-langgraph:
-	$(PYTHON) integrations/langgraph/scripts/to_oep_permission.py
+	$(PY_RUN) integrations/langgraph/scripts/to_oep_permission.py
 
 validate-replay-cli:
-	OEP_REPLAY_MODE=read-only $(PYTHON) -m oep_verify.cli replay pder_code_review_read_diff_0001 --field decision_id > /dev/null
-	OEP_REPLAY_MODE=read-only $(PYTHON) -m oep_verify.cli replay pder_code_review_read_diff_0001 --field policy_bundle_version > /dev/null
-	OEP_REPLAY_MODE=counterfactual $(PYTHON) -m oep_verify.cli replay pder_code_review_read_diff_0001 --counterfactual --policy-bundle permissions/policy/tool_permissions.rego --output-format json --replay-timestamp-utc 2026-05-23T00:00:00Z > /dev/null
+	OEP_REPLAY_MODE=read-only $(PY_RUN) -m oep_verify.cli replay pder_code_review_read_diff_0001 --field decision_id > /dev/null
+	OEP_REPLAY_MODE=read-only $(PY_RUN) -m oep_verify.cli replay pder_code_review_read_diff_0001 --field policy_bundle_version > /dev/null
+	OEP_REPLAY_MODE=counterfactual $(PY_RUN) -m oep_verify.cli replay pder_code_review_read_diff_0001 --counterfactual --policy-bundle permissions/policy/tool_permissions.rego --output-format json --replay-timestamp-utc 2026-05-23T00:00:00Z > /dev/null
 
 validate-counterfactual-replay:
-	$(PYTHON) replay/scripts/check_counterfactual_replay.py --runs 2
+	$(PY_RUN) replay/scripts/check_counterfactual_replay.py --runs 2
 
 check-replay-determinism:
-	$(PYTHON) replay/scripts/check_counterfactual_replay.py --runs 3 --temp-only --include-dtr
+	$(PY_RUN) replay/scripts/check_counterfactual_replay.py --runs 3 --temp-only --include-dtr
 
 validate-counterfactual-schema:
-	$(PYTHON) replay/scripts/check_counterfactual_replay_schema.py
+	$(PY_RUN) replay/scripts/check_counterfactual_replay_schema.py
+
+# Composite v0.3 gate: one process runs every check in check_v03_features.py.
+# `verify` uses this target; the narrow validate-* targets below stay as
+# focused aliases for local debugging and run the same script per check.
+validate-v03-features:
+	$(PY_RUN) replay/scripts/check_v03_features.py
 
 validate-5surface-diff:
-	$(PYTHON) replay/scripts/check_v03_features.py --check 5surface
+	$(PY_RUN) replay/scripts/check_v03_features.py --check 5surface
 
 validate-cost-counterfactual:
-	$(PYTHON) replay/scripts/check_v03_features.py --check cost
+	$(PY_RUN) replay/scripts/check_v03_features.py --check cost
 
 validate-reserve-commit-release:
-	$(PYTHON) replay/scripts/check_v03_features.py --check reserve
+	$(PY_RUN) replay/scripts/check_v03_features.py --check reserve
 
 validate-cross-provider-drift:
-	$(PYTHON) replay/scripts/check_v03_features.py --check cross-provider
+	$(PY_RUN) replay/scripts/check_v03_features.py --check cross-provider
 
 validate-cache-substitution:
-	$(PYTHON) replay/scripts/check_v03_features.py --check cache
+	$(PY_RUN) replay/scripts/check_v03_features.py --check cache
 
 validate-identity-binding:
-	$(PYTHON) replay/scripts/check_v03_features.py --check identity
+	$(PY_RUN) replay/scripts/check_v03_features.py --check identity
 
 validate-composite:
-	$(PYTHON) replay/scripts/check_v03_features.py --check composite
+	$(PY_RUN) replay/scripts/check_v03_features.py --check composite
 
 validate-backward-compat:
-	$(PYTHON) replay/scripts/check_v03_features.py --check backward-compat
+	$(PY_RUN) replay/scripts/check_v03_features.py --check backward-compat
 
 check-docs:
 	$(PYTHON) scripts/check_public_docs.py
@@ -133,42 +148,25 @@ update-digests:
 	$(PYTHON) permissions/scripts/update_permission_digests.py
 
 check-digests:
-	$(PYTHON) manifest/scripts/update_manifest_digests.py --check
-	$(PYTHON) permissions/scripts/update_permission_digests.py --check
+	$(PY_RUN) manifest/scripts/update_manifest_digests.py --check
+	$(PY_RUN) permissions/scripts/update_permission_digests.py --check
+
+# Coverage re-runs the same validation targets as `verify` with PY_RUN
+# overridden to an instrumented runner, so new validation targets only need
+# to be added to the target lists below (no duplicated command lines).
+# Targets whose scripts read OEP_DEMO_STATE_PATH run with the coverage demo
+# state injected; everything else runs exactly as in `verify`.
+COVERAGE_PY_RUN := $(PYTHON) -m coverage run -a --source=$(COVERAGE_SOURCE)
+COVERAGE_TARGETS := check-digests validate-manifest validate-events validate-human-review validate-permissions validate-bedrock validate-mcp validate-langgraph validate-counterfactual-schema validate-v03-features validate-counterfactual-replay check-replay-determinism check-dtr-jsonl
+COVERAGE_STATE_TARGETS := validate-demo validate-eval validate-traces validate-playbooks validate-replay-cli
 
 coverage:
 	rm -f $(COVERAGE_DEMO_STATE)
 	$(PYTHON) -m coverage erase
 	$(MAKE) test-policy OPA=$(OPA)
-	$(PYTHON) -m coverage run --source="$(COVERAGE_SOURCE)" manifest/scripts/update_manifest_digests.py --check
-	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" permissions/scripts/update_permission_digests.py --check
-	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" manifest/scripts/check_release_manifest.py
-	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" events/scripts/check_agent_step_event.py
-	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" permissions/scripts/check_tool_permission_packet.py
-	OEP_DEMO_STATE_PATH="$(COVERAGE_DEMO_STATE)" $(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" demo/scripts/run_code_review_demo.py
-	OEP_DEMO_STATE_PATH="$(COVERAGE_DEMO_STATE)" $(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" demo/scripts/check_replay_state.py
-	OEP_DEMO_STATE_PATH="$(COVERAGE_DEMO_STATE)" $(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" traces/scripts/check_eval_result.py
-	OEP_DEMO_STATE_PATH="$(COVERAGE_DEMO_STATE)" $(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" traces/scripts/check_operational_trace.py
-	OEP_DEMO_STATE_PATH="$(COVERAGE_DEMO_STATE)" $(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" playbooks/scripts/check_reconstruction_packet.py
-	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" translations/bedrock/scripts/check_bedrock_translation.py
-	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" integrations/mcp/scripts/to_oep_permission.py
-	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" integrations/langgraph/scripts/to_oep_permission.py
-	OEP_DEMO_STATE_PATH="$(COVERAGE_DEMO_STATE)" OEP_REPLAY_MODE=read-only $(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" -m oep_verify.cli replay pder_code_review_read_diff_0001 --field decision_id > /dev/null
-	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" replay/scripts/check_counterfactual_replay_schema.py
-	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" replay/scripts/check_v03_features.py
-	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" replay/scripts/check_counterfactual_replay.py --runs 2
-	$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" replay/scripts/check_counterfactual_replay.py --runs 3 --temp-only --include-dtr
+	OEP_DEMO_STATE_PATH="$(COVERAGE_DEMO_STATE)" $(MAKE) $(COVERAGE_STATE_TARGETS) PY_RUN='$(COVERAGE_PY_RUN)'
+	$(MAKE) $(COVERAGE_TARGETS) PY_RUN='$(COVERAGE_PY_RUN)'
 	$(PYTHON) scripts/check_public_docs.py
-	@set -e; \
-	tmp_dir=$$(mktemp -d); \
-	trap 'rm -rf "$$tmp_dir"' EXIT; \
-	for scenario in $(DTR_SCENARIOS); do \
-		out="$$tmp_dir/$$scenario.jsonl"; \
-		$(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" $(DTR_INTEGRATION_DIR)/scripts/to_dtr_jsonl.py \
-			--scenario "$$scenario" \
-			--out "$$out"; \
-		diff -u "$(DTR_INTEGRATION_DIR)/$$scenario.jsonl" "$$out"; \
-	done
 	OEP_DEMO_STATE_PATH="$(COVERAGE_DEMO_STATE)" $(PYTHON) -m coverage run -a --source="$(COVERAGE_SOURCE)" -m pytest -q
 	$(PYTHON) scripts/check_package_build.py
 	$(PYTHON) -m coverage report --skip-empty --fail-under=$(COVERAGE_FAIL_UNDER)
@@ -197,7 +195,7 @@ check-dtr-jsonl:
 	trap 'rm -rf "$$tmp_dir"' EXIT; \
 	for scenario in $(DTR_SCENARIOS); do \
 		out="$$tmp_dir/$$scenario.jsonl"; \
-		$(PYTHON) $(DTR_INTEGRATION_DIR)/scripts/to_dtr_jsonl.py \
+		$(PY_RUN) $(DTR_INTEGRATION_DIR)/scripts/to_dtr_jsonl.py \
 			--scenario "$$scenario" \
 			--out "$$out"; \
 		diff -u "$(DTR_INTEGRATION_DIR)/$$scenario.jsonl" "$$out"; \

@@ -1,0 +1,18 @@
+# Local hooks reuse the repository's locked toolchain through the Makefile,
+# so pre-commit can never drift from what `make lint` / `make typecheck`
+# (and CI) enforce. Install with: pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check (make lint)
+        entry: make lint
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: mypy
+        name: mypy (make typecheck)
+        entry: make typecheck
+        language: system
+        types: [python]
+        pass_filenames: false

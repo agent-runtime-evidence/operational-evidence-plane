@@ -59,13 +59,12 @@
       "pattern": "^[a-f0-9]{32}$"
     },
     "span_id": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{16}$"
+      "$ref": "#/$defs/span_id"
     },
     "parent_span_id": {
       "oneOf": [
         {"type": "null"},
-        {"type": "string", "pattern": "^[a-f0-9]{16}$"}
+        {"$ref": "#/$defs/span_id"}
       ]
     },
     "checkpoint": {
@@ -113,6 +112,10 @@
     }
   },
   "$defs": {
+    "span_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{16}$"
+    },
     "checkpoint": {
       "type": "object",
       "additionalProperties": false,

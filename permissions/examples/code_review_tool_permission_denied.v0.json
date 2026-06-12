@@ -31,7 +31,7 @@
   },
   "policy_bundle_version": "sha256:e0d5563e9e046960f5435ab1e00f26df8925e16ca7a207ee37df65b7151bcb27",
   "release_manifest_id": "rmf_code_review_agent_2026_05_04_v0",
-  "release_manifest_version": "sha256:27c6c2f1ace5aeb9549a07d2287a5b251188181a383bbb84d3dc6ef7821608a4",
+  "release_manifest_version": "sha256:3689440c7f0c48baaf13262ac6a6a15635151a1cb2a30b13b32484ff47fcc59a",
   "requested_action": {
     "action_type": "write_diff",
     "input_ref": "demo/fixtures/diff_synthetic_001.patch",

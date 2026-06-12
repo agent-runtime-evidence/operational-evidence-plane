@@ -9,15 +9,14 @@ examples stay in sync after a manifest or policy change. Run this after
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
-from typing import Any
 
 from oep_verify.verify_support import (
     load_json_object,
     require_json_object,
     require_string,
     sha256_digest,
+    stable_json,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -27,10 +26,6 @@ DEFAULT_PERMISSION_PATHS: tuple[Path, ...] = (
     ROOT / "permissions" / "examples" / "code_review_tool_permission.v0.json",
     ROOT / "permissions" / "examples" / "code_review_tool_permission_denied.v0.json",
 )
-
-
-def _stable_json(data: dict[str, Any]) -> str:
-    return json.dumps(data, indent=2, sort_keys=True) + "\n"
 
 
 def derive_versions(manifest_path: Path) -> tuple[str, str]:
@@ -79,7 +74,7 @@ def update_permission_digests(
             continue
 
         if changed and not check:
-            packet_path.write_text(_stable_json(packet), encoding="utf-8")
+            packet_path.write_text(stable_json(packet), encoding="utf-8")
         elif not changed:
             print(f"{label}: permission digests are up to date")
 

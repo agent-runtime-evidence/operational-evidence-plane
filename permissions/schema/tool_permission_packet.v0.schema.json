@@ -29,8 +29,7 @@
       "const": "oep.tool_permission_packet.v0"
     },
     "packet_id": {
-      "type": "string",
-      "pattern": "^pder_[a-z0-9][a-z0-9_-]*$"
+      "$ref": "#/$defs/decision_id"
     },
     "decision_time": {
       "type": "string",
@@ -41,12 +40,10 @@
       "pattern": "^rmf_[a-z0-9][a-z0-9_-]*$"
     },
     "event_id": {
-      "type": "string",
-      "pattern": "^evt_[a-z0-9][a-z0-9_-]*$"
+      "$ref": "#/$defs/event_id"
     },
     "tool_call_id": {
-      "type": "string",
-      "pattern": "^tool_[a-z0-9][a-z0-9_-]*$"
+      "$ref": "#/$defs/tool_call_id"
     },
     "trace_id": {
       "type": "string",
@@ -94,8 +91,7 @@
       "oneOf": [
         {"type": "null"},
         {
-          "type": "string",
-          "pattern": "^sha256:[a-f0-9]{64}$",
+          "$ref": "#/$defs/digest_sha256",
           "description": "Hash of the policy bundle in effect at the call. Matches the manifest's policy layer digest."
         }
       ]
@@ -104,8 +100,7 @@
       "oneOf": [
         {"type": "null"},
         {
-          "type": "string",
-          "pattern": "^sha256:[a-f0-9]{64}$",
+          "$ref": "#/$defs/digest_sha256",
           "description": "Hash of the release manifest in effect at the call."
         }
       ]
@@ -161,6 +156,26 @@
     }
   },
   "$defs": {
+    "approval_id": {
+      "type": "string",
+      "pattern": "^approval_[a-z0-9][a-z0-9_-]*$"
+    },
+    "decision_id": {
+      "type": "string",
+      "pattern": "^pder_[a-z0-9][a-z0-9_-]*$"
+    },
+    "digest_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^evt_[a-z0-9][a-z0-9_-]*$"
+    },
+    "tool_call_id": {
+      "type": "string",
+      "pattern": "^tool_[a-z0-9][a-z0-9_-]*$"
+    },
     "actor": {
       "type": "object",
       "additionalProperties": false,
@@ -299,13 +314,13 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "permission_packet_ref": {"type": "string", "pattern": "^pder_[a-z0-9][a-z0-9_-]*$"},
-        "tool_call_id": {"type": "string", "pattern": "^tool_[a-z0-9][a-z0-9_-]*$"},
+        "permission_packet_ref": {"$ref": "#/$defs/decision_id"},
+        "tool_call_id": {"$ref": "#/$defs/tool_call_id"},
         "policy_bundle_version": {"type": "string", "minLength": 1},
         "approval_capture_ref": {
           "oneOf": [
             {"type": "null"},
-            {"type": "string", "pattern": "^approval_[a-z0-9][a-z0-9_-]*$"}
+            {"$ref": "#/$defs/approval_id"}
           ]
         }
       }
@@ -406,7 +421,7 @@
         "invalidation_event_id": {
           "oneOf": [
             {"type": "null"},
-            {"type": "string", "pattern": "^evt_[a-z0-9][a-z0-9_-]*$"}
+            {"$ref": "#/$defs/event_id"}
           ]
         }
       }
@@ -439,7 +454,7 @@
         "approval_capture_ref": {
           "oneOf": [
             {"type": "null"},
-            {"type": "string", "pattern": "^approval_[a-z0-9][a-z0-9_-]*$"}
+            {"$ref": "#/$defs/approval_id"}
           ]
         }
       }

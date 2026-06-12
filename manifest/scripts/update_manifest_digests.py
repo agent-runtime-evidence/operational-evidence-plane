@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import argparse
-import json
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
 
-from oep_verify.verify_support import load_json_object, require_json_object, sha256_digest
+from oep_verify.verify_support import load_json_object, require_json_object, sha256_digest, stable_json
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -49,14 +47,10 @@ def update_manifest_digests(manifest_path: Path, *, check: bool = False) -> bool
         return False
 
     if changed:
-        manifest_path.write_text(_stable_json(manifest), encoding="utf-8")
+        manifest_path.write_text(stable_json(manifest), encoding="utf-8")
     else:
         print("Manifest digests are up to date")
     return True
-
-
-def _stable_json(data: dict[str, Any]) -> str:
-    return json.dumps(data, indent=2, sort_keys=True) + "\n"
 
 
 def main(argv: Sequence[str] | None = None) -> None:

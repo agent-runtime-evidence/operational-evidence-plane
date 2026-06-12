@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sqlite3
-import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -19,12 +17,12 @@ from oep_verify.scenarios import (
     scenario_names,
 )
 from oep_verify.verify_support import (
+    eval_opa_decision,
     load_json_object,
     path_from_env,
     relative_path,
     require,
     require_datetime_not_after,
-    require_executable,
     require_json_list,
     require_json_object,
     require_resolved_layer_bindings,
@@ -50,27 +48,7 @@ def rel(path: Path) -> str:
 
 
 def opa_decision(policy_input_path: Path) -> dict[str, Any]:
-    opa = require_executable("opa", "reconstruction validation")
-    result = subprocess.run(
-        [
-            opa,
-            "eval",
-            "--format",
-            "json",
-            "--data",
-            str(POLICY_PATH),
-            "--input",
-            str(policy_input_path),
-            "data.oep.permissions.decision",
-        ],
-        check=True,
-        capture_output=True,
-        encoding="utf-8",
-        text=True,
-    )
-    payload = json.loads(result.stdout)
-    value = payload["result"][0]["expressions"][0]["value"]
-    return require_json_object(value, "OPA decision must be an object")
+    return eval_opa_decision(POLICY_PATH, policy_input_path, "reconstruction validation")
 
 
 def has_blocking_loss(losses: list[Any], field: str) -> bool:

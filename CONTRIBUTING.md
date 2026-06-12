@@ -30,6 +30,15 @@ make build-check
 Generated state, coverage files, build outputs, DTR fragments, and report
 directories should not be committed.
 
+Optional: install the pre-commit hooks so `make lint` and `make typecheck`
+run automatically before each commit. The hooks call the Makefile targets, so
+they always match CI. Set up the locked `uv` environment first (see
+`README.md` Quickstart) — the hooks run the project's pinned toolchain:
+
+```bash
+pre-commit install
+```
+
 ## Artifact Updates
 
 When changing any file referenced by a resolved release-manifest binding, run:

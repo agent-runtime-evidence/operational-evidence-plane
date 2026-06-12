@@ -33,60 +33,14 @@ oep replay pder_code_review_read_diff_0001 \
   --replay-timestamp-utc 2026-05-23T00:00:00Z
 ```
 
-`OEP_REPLAY_MODE=counterfactual` enables the same mode from the environment. `--replay-timestamp-utc` pins the otherwise excluded wall-clock replay timestamp when comparing CLI JSON byte-for-byte; `--strip-exclusions` removes fields listed in `replay_metadata.determinism_exclusions` before printing JSON/JSONL output. `make validate-counterfactual-replay` regenerates the three counterfactual demos; `make check-replay-determinism` checks byte-identical SQLite state, counterfactual JSON/JSONL, and DTR JSONL across runs.
-
-The three demos all extend the existing deterministic code-review fixture:
-
-- compound reliability: a 10-step workflow replayed under a stricter 4-step bounded policy;
-- budget-per-run cross-over: a synthetic runaway loop replayed under a stricter budget cap;
-- approval-per-step escalation: a workflow replayed under a stricter write-approval policy.
-
-The v0.3 decision metadata is additive under `decision_id`: permission,
-cost, five-surface drift, cache, and identity sub-objects can be recorded
-under one decision without making old records invalid. See
-[Schema migration v0.3](docs/schema_migration_v0.3.md) for the field list
-and the backward-compatibility guarantee. The validation gates are exposed
-as separate Make targets:
-
-```bash
-make validate-5surface-diff
-make validate-cost-counterfactual
-make validate-reserve-commit-release
-make validate-cross-provider-drift
-make validate-cache-substitution
-make validate-identity-binding
-make validate-composite
-make validate-backward-compat
-```
-
-The composed CLI paths keep deterministic and evaluative replay separate:
-
-```bash
-oep diff pder_a pder_b --surface model,policy,prompt,tool,corpus
-oep replay pder_code_review_read_diff_0001 \
-  --substitute policy=permissions/policy/tool_permissions.rego \
-  --substitute-budget per_run_cap_usd=0.005 \
-  --substitute-model bedrock:anthropic.claude-opus-4-6 \
-  --output-format json
-oep reserve --budget-cap-usd 10 \
-  --reservation bres_0001:6:4 \
-  --reservation bres_0002:8:7
-oep project --projected-cost-window 4:9 --budget-cap-usd 10 --approve
-```
-
 Policy, budget, reserve accounting, cache staleness, and config-surface
 diffs are deterministic replays over recorded fields. Cross-provider model
 substitution, cache substitution that implies a fresh model call, and
 pre-session projection are labelled `replay_class: evaluative` and should
-be read as counterfactual estimates.
-
-Closest commercial precedents are [Styra DAS log-replay](https://docs.styra.com/das/observability-and-audit/decision-logs/log-replay) and [Permit.io Audit Log Replay](https://docs.permit.io/how-to/use-audit-logs/audit-log-replay). Both are useful authorization-domain precedents, but they are OPA/Rego-oriented, commercial-only products rather than an open-source, vendor-neutral, agent-runtime-decision-record-native reference implementation. The v0.3 branch demonstrates how the same replay shape can compose with agent runtime evidence records without claiming to replace those products.
-
-[Srinivasan, "A Methodology for Selecting and Composing Runtime Architecture Patterns for Production LLM Agents"](https://arxiv.org/abs/2605.20173) (arXiv:2605.20173, 19 May 2026) is the Q2 2026 academic anchor for the Replay Divergence Problem: LLM-based consumers of deterministic logs can diverge under model-version or prompt changes. The v0.3 deterministic replay paths mitigate replay divergence for recorded policy, cost, cache-staleness, and config-surface fields. Cross-provider model substitution remains evaluative and does not re-execute the LLM call inside this reference implementation.
-
-The Decision Evidence Maturity Model method specification that underlies the evidence-chain framing is my arXiv preprint at [arXiv:2605.04093](https://arxiv.org/abs/2605.04093) / DOI [`10.48550/arXiv.2605.04093`](https://doi.org/10.48550/arXiv.2605.04093). The v0.3 work implements deterministic policy, cost, reserve-accounting, cache-staleness, and five-surface config replay over recorded fields. Model substitution and cache substitution that implies a fresh model call are labelled evaluative estimates.
-
-AAGATE ([arXiv:2510.25863](https://arxiv.org/abs/2510.25863)) is treated as complementary agent-governance work, not as a competitor. OEP's narrower scope is local evidence wiring and replay output over reference records. Reliability references such as Lusser's Law are used only as intuition for compounded workflow failure risk, not as empirical reliability proof for this repository.
+be read as counterfactual estimates. The three counterfactual demos, the
+composed CLI paths, the per-surface validation gates, and the commercial
+and academic precedents are documented in
+[docs/counterfactual_replay.md](docs/counterfactual_replay.md).
 
 Boundary: this is not a production-grade replay engine, not a compliance certification, not a substitute for vendor authorization-replay products, and does not constitute legal or regulatory adequacy by itself.
 
@@ -227,10 +181,17 @@ For the fastest read, open these in order:
 
 ## Docs
 
+- [Quickstart walkthrough](docs/quickstart_walkthrough.md)
 - [Architecture walkthrough](docs/architecture.md)
-- [Decision log](docs/decision_log.md)
+- [Counterfactual replay guide](docs/counterfactual_replay.md)
+- [Schema reference](docs/schema_reference.md)
+- [Schema versioning policy](docs/schema_versioning.md)
 - [Schema migration v0.3](docs/schema_migration_v0.3.md)
+- [Record-keeping reference](docs/record_keeping_reference.md)
+- [Landscape and prior art](docs/landscape.md)
+- [Decision log](docs/decision_log.md)
 - [Public claims guide](docs/public_claims.md)
+- [Release checklist](docs/release_checklist.md)
 - [Contributing guide](CONTRIBUTING.md)
 - [Bedrock translation](translations/bedrock/README.md)
 - [Decision Trace Reconstructor integration](integrations/decision-trace-reconstructor/README.md)
@@ -307,82 +268,15 @@ release manifest -> agent-step event -> OPA-backed permission packet -> trace bu
 
 The v0.3 counterfactual branch starts from the stored permission decision and replay state, substitutes policy, budget, model, cache, or config-surface inputs, and emits schema-validated attribution output. Deterministic surfaces replay over recorded fields; model and cache-fresh-call substitutions are labelled evaluative estimates. The primary eval is a deterministic smoke check over one synthetic fixture. The denied path demonstrates blocked replay readiness when OPA denies a tool call and no SQLite replay state is generated. Neither is a benchmark, model-quality claim, safety certification, or production monitoring result.
 
-## Replayable Permission Trace Fields (v0.2)
+## Record-Keeping Reference
 
-The v0.2 release extends the OPA-backed permission packet with optional
-replayable permission trace fields. These fields are additive: v0.1
-records that omit them still validate. The deterministic code-review
-demo populates them so the v0.2 reproducibility walkthrough can show the
-new primitives in use.
-
-| Field | Description |
-|---|---|
-| `tool_call_id` | Identifier for the tool invocation event (also present in v0.1). |
-| `scoped_credential_lifetime` | ISO 8601 time-to-live of the scoped credential used at the call (for example `PT15M`). |
-| `approval_capture` | Captured human approval (if required), including approver identity, captured-at timestamp, and approval type. `null` when no human approval was required. |
-| `policy_bundle_version` | `sha256:` hash of the policy bundle in effect at the call. Matches the release manifest's policy layer digest. |
-| `release_manifest_version` | `sha256:` hash of the release manifest in effect at the call. |
-| `model_alias` | Model alias as called by the agent (for example `claude-sonnet-4-6`). |
-| `resolved_model_version` | Resolved underlying model version at call time. |
-| `model_provider` | Provider of the model (for example `anthropic`, `openai`, `google`). |
-| `nd_builtin_cache` | Optional replay cache for non-deterministic OPA builtin results such as time or HTTP lookups. `null` or omitted when no non-deterministic builtin capture is needed. |
-
-The `model_*` fields are recorded because API providers can change
-underlying model behavior under unchanged aliases. Recording the
-resolved version and provider at call time keeps replay records stable
-across silent provider-side model changes. This is a record-keeping
-addition, not a model-quality claim.
-
-The v0.2 fields are joined by the stable `pder_*` decision id (the
-`packet_id` value) and the `replay_handle` primitives carried by the
-v0.1 chain.
-
-## Record-Keeping Reference Table
-
-The table below maps OEP record fields to record-keeping requirements
-named in well-known frameworks. It illustrates which event fields the
-requirements describe; it is documentation and education, not a
-compliance or audit claim. The repository does not create compliance,
-audit readiness, or legal sufficiency by itself — see [the public
-claims guide](docs/public_claims.md) §Required Boundaries.
-
-| OEP record field | EU AI Act event field cited | NIST AI RMF 1.0 function |
-|---|---|---|
-| `decision_id` + per-event timestamps | Article 12 (Record-keeping) | MEASURE function records |
-| `policy_bundle_version` + `release_manifest_version` | Article 13 (Transparency and provision of information to deployers) | MEASURE function records |
-| `approval_capture` (human-in-the-loop) | Article 14 (Human oversight) | MANAGE function records |
-| Retention notes in README (not code) | Article 18 (Documentation keeping) | GOVERN function records |
-| Replay trace as runtime evidence | Article 26(5) (deployer operational monitoring obligation) | MEASURE function records |
-
-NIST AI RMF function-citation specificity is intentionally kept at the
-four canonical function names (GOVERN / MAP / MEASURE / MANAGE) without
-sub-function commitment. The NIST AI Risk Management Framework primary
-source is version 1.0, released January 2023; the Generative AI Profile
-(NIST AI 600-1, July 2024) is a separate companion document and is not
-versioned as "1.1". Article numbers and titles refer to Regulation (EU)
-2024/1689 (the EU AI Act). The table is reference material, not a
-binding mapping.
-
-The v0.3 planning notes also track an education-only EU AI Act timing
-view for Articles 19, 26(6), 50, and 73. The source baseline is the
-European Commission AI Act timeline and FAQ plus the Council/Parliament
-Digital Omnibus political agreement announced on 7 May 2026; formal legal
-texts remain the controlling source.
-
-| Article | OEP-adjacent record topic | Timing note |
-|---|---|---|
-| 19 | Provider conformity-assessment evidence for high-risk systems | High-risk application dates are affected by the Digital Omnibus political agreement; planning notes should distinguish stand-alone and product-embedded high-risk systems. |
-| 26(6) | Deployer log/evidence retention for high-risk use | Treat as high-risk-system planning material, not as an OEP compliance assertion. |
-| 50 | Transparency records for AI-generated or AI-interaction disclosures | Transparency obligations are tracked separately from high-risk timing; some Article 50 timing details were addressed in the Digital Omnibus agreement. |
-| 73 | Serious-incident reporting evidence | Incident evidence examples here are educational only and do not implement statutory reporting. |
-
-Sources for the timing notes: [European Commission AI Act timeline](https://ai-act-service-desk.ec.europa.eu/en/ai-act/timeline/timeline-implementation-eu-ai-act), [European Commission AI Act FAQ](https://ai-act-service-desk.ec.europa.eu/en/faq), and [Council press release, 7 May 2026](https://www.consilium.europa.eu/en/press/press-releases/2026/05/07/artificial-intelligence-council-and-parliament-agree-to-simplify-and-streamline-rules/).
-
-**Retention.** This repository is a reference implementation. It does
-not retain runtime records on behalf of any deployer. Operators that
-choose to reuse the schemas are responsible for record retention,
-storage, access controls, and any legal requirements that apply to
-their deployment context.
+The replayable permission trace fields introduced in the v0.2 release line
+and still current (credential lifetime, approval capture, policy and manifest
+digests, resolved model identity, and the non-deterministic builtin cache)
+and the education-only mapping of OEP record
+fields to EU AI Act and NIST AI RMF record-keeping language are documented in
+[docs/record_keeping_reference.md](docs/record_keeping_reference.md). The
+mapping is reference material, not a compliance or audit claim.
 
 ## Replay CLI
 
@@ -422,7 +316,7 @@ their current file handle; new readers open the completed replacement.
 The [`integrations/mcp/`](integrations/mcp/) directory ships an
 illustrative adapter that translates one Model Context Protocol
 (MCP) `tools/call` envelope into an OEP permission packet, including
-the v0.2 replayable permission trace fields. It is documentation and
+the replayable permission trace fields added in v0.2. It is documentation and
 mapping data with a standalone script — it does not call MCP servers
 or vendor APIs.
 
@@ -469,32 +363,12 @@ The public Python distribution is the root package, `operational-evidence-plane`
 | `playbooks/` | Rollback and incident reconstruction rules that explain what evidence is sufficient, missing, or stale. |
 | `demo/` | Deterministic code-review-agent scenario using mocked LLM behavior and local SQLite state. |
 
-## Substitute Landscape
+## Landscape and Prior Art
 
-| Surface | Useful precedent | Boundary for this repository |
-|---|---|---|
-| Bedrock 5+ layers | Bedrock agent versions and aliases visibly bind foundation model, instructions, prompt templates, action groups, and knowledge-base associations; memory, guardrail, and runtime or collaboration configuration exist on adjacent surfaces. | Treat Bedrock as a strong vendor-native alias precedent. Do not claim vendors only bind four layers or fewer. |
-| Azure `azure-ai-projects` 2.1.0 | Azure AI Projects SDK consolidation gives a current Foundry project surface, with 2.1.0 as the verified version anchor from 2026-04-20. | Useful SDK/platform integration, but not a named cross-stack release manifest with runtime replay and incident joins. |
-| Vertex | Vertex `ReasoningEngine` and related Google Cloud surfaces expose deployment, model, evaluation, memory, RAG/search, and IAM concepts across separate resources. | A partial resource-binding precedent, not a single vendor-neutral release/runtime evidence artifact. |
-| LangSmith | LangSmith Deployment supports managed deployments and revisions; LangSmith prompts support commit history, staging / production environments, rollback, tags, and the public prompt hub. | Strong observability, deployment, and prompt-management precedent, but split from permission packet, replay protocol, and incident playbook scope. |
-| Styra DAS / Permit.io | Authorization-domain log replay re-evaluates historical OPA/Rego decisions against changed policy or data. | Closest commercial replay precedent, but not an agent-runtime decision-record chain and not a product this repository replaces. |
-| OTel GenAI | OpenTelemetry GenAI semantic conventions describe runtime telemetry fields for generative AI systems. | Runtime telemetry substrate, not release management or cross-stack version binding. |
-| MCP | Model Context Protocol defines tool and context communication patterns for agentic systems. | Runtime communication protocol, not a release manifest or incident reconstruction model. |
-| A2A | Agent2Agent protocol defines inter-agent communication patterns. | Coordination protocol, not release-time binding, rollback, or replay evidence. |
-
-## Prior Art
-
-- Sovereign Agentic Loops: Decoupling AI Reasoning from Execution in Real-World Systems, arXiv:2604.22136, Jun He and Deying Yu, submitted 2026-04-24: [arxiv.org/abs/2604.22136](https://arxiv.org/abs/2604.22136).
-  Paraphrased abstract: SAL argues that agents should not pass stochastic model outputs directly into mutating execution layers. It proposes a control-plane architecture where models emit structured intents with justifications, and those intents are validated against real system state and policy before execution, with evidence-chain support for audit and replay.
-- Agent Control Protocol: Admission Control for Agent Actions, arXiv:2603.18829, Marcelo Fernandez, submitted 2026-03-19 and revised through v10 on 2026-04-30: [arxiv.org/abs/2603.18829](https://arxiv.org/abs/2603.18829).
-  Paraphrased abstract: ACP addresses harmful behavior that can emerge across individually valid agent requests. It combines deterministic, history-aware admission control with static risk scoring and stateful signals such as anomaly accumulation and cooldown, so policy enforcement can account for execution traces rather than only isolated requests.
-
-This repository treats SAL and ACP as legitimate prior conceptual work. The goal here is complementary engineering reference code and evidence wiring, not a competing theory or a claim of uniqueness.
-
-## Adjacent Project Note
-
-AgentReplay is an adjacent local-first desktop project for evals, observability, memory, and replay around agents and coding tools. It is not used as source code here: its desktop scope is different, and its AGPL-3.0 license is not compatible with this repository's permissive Apache-2.0 reuse boundary.
-
+How this repository relates to Bedrock, Azure AI Projects, Vertex, LangSmith,
+Styra DAS / Permit.io, OTel GenAI, MCP, and A2A, plus the SAL and ACP prior
+art and the Bedrock translation, is collected in
+[docs/landscape.md](docs/landscape.md).
 ## What This Is NOT
 
 This is not an agent framework, model gateway, tracing backend, policy language, compliance product, legal-audit package, vendor replacement, production platform, production-grade replay engine, compliance certification, or substitute for vendor authorization-replay products. It does not constitute legal or regulatory adequacy by itself. It is also not a claim that adjacent vendor and open-source tools are absent. The safer claim is narrower: public artifacts mostly expose adjacent slices, and this repository demonstrates one inspectable way to stitch release-time and runtime evidence together.
@@ -508,10 +382,6 @@ This is not an agent framework, model gateway, tracing backend, policy language,
 - Demo scenario: code-review agent.
 - Core schemas: scenario-agnostic first.
 - Post-core translation: optional Bedrock-specific examples only after the vendor-neutral core exists.
-
-## Post-Core Translation
-
-The Bedrock translation lives under [translations/bedrock/](translations/bedrock/). It maps the vendor-neutral chain to Bedrock agent versions, aliases, action groups, prompt templates, memory/session state, and `InvokeAgent` trace references. It is documentation and mapping data only; it does not call AWS, deploy Bedrock resources, or make Bedrock the core implementation target.
 
 ## License
 

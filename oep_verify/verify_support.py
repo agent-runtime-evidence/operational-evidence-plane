@@ -75,6 +75,57 @@ def load_json_object(path: Path) -> JsonObject:
     return data
 
 
+def load_json_object_or_exit(path: Path) -> JsonObject:
+    """Load a JSON object for CLI scripts, exiting cleanly on a non-object payload."""
+    try:
+        return load_json_object(path)
+    except TypeError as exc:
+        raise SystemExit(f"expected JSON object at {path}") from exc
+
+
+def stable_json(data: JsonObject) -> str:
+    """Serialize *data* as deterministic pretty JSON with a trailing newline."""
+    return json.dumps(data, indent=2, sort_keys=True) + "\n"
+
+
+def required_field(value: Any, field: str, context: str) -> Any:
+    """Return *value*, exiting cleanly when a required projection field is absent."""
+    if value is None:
+        raise SystemExit(f"{context} missing required field: {field}")
+    return value
+
+
+def read_only_sqlite_connection(db_path: Path) -> sqlite3.Connection:
+    """Open *db_path* as a read-only SQLite connection via a file URI."""
+    state_uri = f"{db_path.resolve().as_uri()}?mode=ro"
+    return sqlite3.connect(state_uri, uri=True)
+
+
+def eval_opa_decision(policy_path: Path, input_path: Path, purpose: str) -> JsonObject:
+    """Evaluate ``data.oep.permissions.decision`` for *input_path* against *policy_path*."""
+    opa = require_executable("opa", purpose)
+    result = subprocess.run(
+        [
+            opa,
+            "eval",
+            "--format",
+            "json",
+            "--data",
+            str(policy_path),
+            "--input",
+            str(input_path),
+            "data.oep.permissions.decision",
+        ],
+        check=True,
+        capture_output=True,
+        encoding="utf-8",
+        text=True,
+    )
+    payload = json.loads(result.stdout)
+    value = payload["result"][0]["expressions"][0]["value"]
+    return require_json_object(value, "OPA decision must be an object")
+
+
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise ValueError(message)
@@ -374,10 +425,13 @@ __all__ = [
     "TREE_DIGEST_EXCLUDED_DIRS",
     "TREE_DIGEST_EXCLUDED_NAMES",
     "TREE_DIGEST_EXCLUDED_SUFFIXES",
+    "eval_opa_decision",
     "json_schema_validator",
     "load_json_object",
+    "load_json_object_or_exit",
     "parse_datetime",
     "path_from_env",
+    "read_only_sqlite_connection",
     "relative_path",
     "require",
     "require_datetime_not_after",
@@ -385,8 +439,10 @@ __all__ = [
     "require_json_list",
     "require_json_object",
     "require_string",
+    "required_field",
     "scalar",
     "sha256_digest",
+    "stable_json",
     "require_resolved_layer_bindings",
     "unresolved_layer_bindings",
     "validate_json_schema",

@@ -72,7 +72,7 @@
     },
     "tool_schema": {
       "binding_status": "resolved",
-      "digest": "sha256:73f21ab2d6330c175e6f6bc899298ab02a24c9f93744cdcd1d78327b500efb3b",
+      "digest": "sha256:388415422dfeca0eb74307237ff6801c020a03cf5318e70ee93e09967f9b4a21",
       "evidence_role": "Binds the allowed tool/action schema for runtime permission packets.",
       "layer_type": "tool_schema",
       "name": "code-review-agent-tool-registry",
@@ -82,7 +82,7 @@
     },
     "workflow": {
       "binding_status": "resolved",
-      "digest": "sha256:048540ff1ff4043680573b4343d621b7559ea3b4aa08f9200cfa02a3c1cbfe1e",
+      "digest": "sha256:909da37bef8e7e2ce3e632b415c01d0a94d250c99323b3dfa396ddecdce90bf3",
       "evidence_role": "Binds the workflow package for deterministic review, permission check, trace emit, resource loading, and finding output.",
       "layer_type": "workflow",
       "name": "code-review-agent-workflow",

@@ -11,6 +11,7 @@ from oep_traces.paths import EXPECTED_EVAL_SCHEMA_TITLE
 from oep_verify.verify_support import (
     load_json_object,
     path_from_env,
+    read_only_sqlite_connection,
     relative_path,
     require,
     require_json_list,
@@ -39,8 +40,7 @@ def rel(path: Path) -> str:
 
 
 def read_only_state_connection() -> sqlite3.Connection:
-    state_uri = f"{DEMO_STATE_PATH.resolve().as_uri()}?mode=ro"
-    return sqlite3.connect(state_uri, uri=True)
+    return read_only_sqlite_connection(DEMO_STATE_PATH)
 
 
 def main() -> None:

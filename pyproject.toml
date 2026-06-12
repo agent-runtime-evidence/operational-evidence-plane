@@ -70,6 +70,7 @@ include = [
   "oep_manifest",
   "oep_events",
   "oep_permissions",
+  "oep_permissions.replay",
   "oep_traces",
   "oep_playbooks",
   "oep_demo"

@@ -27,11 +27,16 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 from typing import Any
 
-from oep_verify.verify_support import load_json_object, validate_json_schema
+from oep_verify.verify_support import (
+    load_json_object,
+    load_json_object_or_exit,
+    required_field,
+    stable_json,
+    validate_json_schema,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_LG_EVENT = (
@@ -48,9 +53,7 @@ OEP_SCHEMA_VERSION = "oep.tool_permission_packet.v0"
 
 
 def _required(value: Any, field: str) -> Any:
-    if value is None:
-        raise SystemExit(f"LangGraph envelope missing required field: {field}")
-    return value
+    return required_field(value, field, "LangGraph envelope")
 
 
 def project_to_oep_permission(lg_event: dict[str, Any]) -> dict[str, Any]:
@@ -144,18 +147,6 @@ def project_to_oep_permission(lg_event: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _stable_json(data: dict[str, Any]) -> str:
-    return json.dumps(data, indent=2, sort_keys=True) + "\n"
-
-
-def _load_json(path: Path) -> dict[str, Any]:
-    with path.open(encoding="utf-8") as handle:
-        data = json.load(handle)
-    if not isinstance(data, dict):
-        raise SystemExit(f"expected JSON object at {path}")
-    return data
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -191,7 +182,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    lg_event = _load_json(args.langgraph_event)
+    lg_event = load_json_object_or_exit(args.langgraph_event)
     projected = project_to_oep_permission(lg_event)
 
     schema = load_json_object(args.schema)
@@ -199,10 +190,10 @@ def main() -> None:
 
     if args.out is not None:
         args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(_stable_json(projected), encoding="utf-8")
+        args.out.write_text(stable_json(projected), encoding="utf-8")
 
     if args.compare_with is not None:
-        canonical = _load_json(args.compare_with)
+        canonical = load_json_object_or_exit(args.compare_with)
         validate_json_schema(schema, canonical, instance_path=args.compare_with)
         if projected != canonical:
             raise SystemExit(
