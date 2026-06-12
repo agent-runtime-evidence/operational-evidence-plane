@@ -20,6 +20,7 @@ Run focused checks while iterating:
 ```bash
 make lint
 make typecheck
+make check-lock
 make test-policy
 make check-digests
 make check-dtr-jsonl

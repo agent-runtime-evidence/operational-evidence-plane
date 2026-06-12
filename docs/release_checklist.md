@@ -5,6 +5,7 @@ Use this checklist before publishing a public tag, GitHub release, Zenodo deposi
 ## Required Checks
 
 - [ ] Run `make clean-state`.
+- [ ] After bumping the version, run `uv lock` and commit the refreshed `uv.lock` (`make check-lock` verifies freshness).
 - [ ] Run `make verify`.
 - [ ] Run `make test` after installing dev dependencies.
 - [ ] Run `make coverage` and confirm coverage remains at or above the configured threshold.

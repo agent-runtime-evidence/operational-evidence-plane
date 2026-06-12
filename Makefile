@@ -3,6 +3,11 @@ PYTHON ?= .venv/bin/python
 else
 PYTHON ?= python3
 endif
+ifneq ($(wildcard .venv/bin/uv),)
+UV ?= .venv/bin/uv
+else
+UV ?= uv
+endif
 OPA ?= opa
 # Runner for validation scripts. Defaults to plain Python; the coverage
 # target overrides it with an instrumented runner so validation targets are
@@ -19,12 +24,22 @@ DTR_INTEGRATION_DIR := integrations/decision-trace-reconstructor
 DTR_SCENARIO ?= code_review_agent
 DTR_SCENARIOS ?= $(shell $(PYTHON) -c "from oep_verify.scenarios import scenario_names; print(' '.join(scenario_names()))")
 
-.PHONY: verify check-opa-dependency compile validate-manifest validate-events validate-human-review validate-permissions validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-langgraph validate-replay-cli validate-counterfactual-replay check-replay-determinism validate-counterfactual-schema validate-v03-features validate-5surface-diff validate-cost-counterfactual validate-reserve-commit-release validate-cross-provider-drift validate-cache-substitution validate-identity-binding validate-composite validate-backward-compat check-docs check-permission-digests test test-policy coverage lint typecheck build-check sync-resources update-digests check-digests clean-state regen-dtr-jsonl check-dtr-jsonl validate-dtr
+.PHONY: verify check-opa-dependency check-lock compile validate-manifest validate-events validate-human-review validate-permissions validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-langgraph validate-replay-cli validate-counterfactual-replay check-replay-determinism validate-counterfactual-schema validate-v03-features validate-5surface-diff validate-cost-counterfactual validate-reserve-commit-release validate-cross-provider-drift validate-cache-substitution validate-identity-binding validate-composite validate-backward-compat check-docs check-permission-digests test test-policy coverage lint typecheck build-check sync-resources update-digests check-digests clean-state regen-dtr-jsonl check-dtr-jsonl validate-dtr
 
-verify: check-opa-dependency compile validate-manifest validate-events validate-human-review test-policy validate-permissions validate-counterfactual-schema validate-v03-features check-permission-digests validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-langgraph validate-replay-cli validate-counterfactual-replay check-replay-determinism check-dtr-jsonl check-docs build-check
+verify: check-opa-dependency check-lock compile validate-manifest validate-events validate-human-review test-policy validate-permissions validate-counterfactual-schema validate-v03-features check-permission-digests validate-demo validate-eval validate-traces validate-playbooks validate-bedrock validate-mcp validate-langgraph validate-replay-cli validate-counterfactual-replay check-replay-determinism check-dtr-jsonl check-docs build-check
 
 check-opa-dependency:
 	@command -v $(OPA) > /dev/null 2>&1 || (echo "Error: '$(OPA)' CLI is not installed or not on PATH. Install OPA CLI 1.x or set OPA=/path/to/opa." >&2; exit 1)
+
+# Soft gate locally: warn-and-skip when uv is absent so dependency-light
+# environments can still run `verify`; CI enforces lockfile freshness hard
+# via `uv sync --locked`.
+check-lock:
+	@if command -v $(UV) > /dev/null 2>&1; then \
+		$(UV) lock --check; \
+	else \
+		echo "Warning: 'uv' not found; skipping lockfile freshness check (CI enforces it via 'uv sync --locked')." >&2; \
+	fi
 
 compile:
 	$(PYTHON) -m compileall -q $(PACKAGES)
