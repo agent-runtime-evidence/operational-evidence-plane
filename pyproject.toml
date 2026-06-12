@@ -52,7 +52,7 @@ dev = [
   "pytest>=8,<9",
   "mypy>=1.10,<2",
   "ruff>=0.8,<1",
-  "types-jsonschema>=4.23,<5",
+  "types-jsonschema>=4.26.0.20260518,<5",
   "uv>=0.11,<1"
 ]
 
