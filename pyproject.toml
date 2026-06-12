@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "operational-evidence-plane"
-version = "0.3.0"
+version = "0.3.1"
 requires-python = ">=3.11,<4"
 description = "Vendor-neutral reference implementation for operational evidence across agent release-time and runtime layers"
 readme = "README.md"

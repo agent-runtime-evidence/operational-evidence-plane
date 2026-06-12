@@ -2,6 +2,73 @@
 
 All notable changes to this reference implementation are documented here.
 
+## v0.3.1 - 2026-06-12
+
+### Added
+
+- Added `make validate-human-review` to the `verify` chain: the
+  human-review reconstruct and tamper-evidence demo now regenerates the
+  committed `human_review_event.v0` examples deterministically and gates
+  every verification run.
+- Added a shared packaged-resource loader (`oep_verify.resources`) and
+  shared script helpers in `oep_verify.verify_support` (`stable_json`,
+  `eval_opa_decision`, `required_field`, `load_json_object_or_exit`,
+  `read_only_sqlite_connection`), replacing duplicated copies across the
+  per-package paths modules and validation scripts.
+- Added pre-commit hooks bound to `make lint` and `make typecheck`, a
+  Dependabot configuration for uv and GitHub Actions, and CI concurrency
+  groups plus uv download caching.
+
+### Changed
+
+- Split the `oep_permissions.replay` monolith into a five-module package
+  (`records`, `storage`, `wrapper`, `opa`, `surfaces`) behind unchanged
+  import paths; all public names re-export from `oep_permissions.replay`.
+- Collapsed the eight v0.3 feature gates into one `validate-v03-features`
+  invocation in `verify`; the narrow targets remain as focused aliases.
+- Derived the `coverage` target from the same Makefile validation targets
+  as `verify` through a `PY_RUN` runner override, removing the manually
+  duplicated coverage command list.
+- Hoisted repeated identifier and digest regex patterns into per-schema
+  `$defs` in the agent step event, human review event, tool permission
+  packet, and operational trace schemas; validation semantics are
+  unchanged.
+- Recomputed the release manifest workflow and tool-schema digests after
+  the bound workflow-source and schema bytes changed; updated
+  `release_manifest_version` in the permission packet examples, the MCP
+  and LangGraph adapter examples, and the packaged mirrors.
+
+### Docs
+
+- Restructured the README into a shorter landing page; moved the
+  counterfactual replay deep dive, the record-keeping reference tables,
+  and the landscape/prior-art sections under `docs/`.
+- Added `docs/quickstart_walkthrough.md`, `docs/schema_reference.md`, and
+  `docs/schema_versioning.md`; linked the release checklist from the
+  README docs index.
+
+### Quality
+
+- Split the two test monoliths into nine domain modules with shared
+  fixtures and helpers (`tests/conftest.py`, `tests/helpers.py`);
+  parametrized the byte-identical counterfactual replay check.
+- Kept the coverage gate at 95% and byte-identical replay determinism
+  green across the refactor.
+
+### Notes
+
+- public API unchanged
+- schema contract unchanged
+- Manifest digests changed because bound workflow-source and schema bytes
+  changed; deterministic replay output remains byte-identical. This
+  release remains a bounded reference implementation: not a
+  production-grade replay engine, not a compliance certification, not a
+  vendor replacement, and not legal or regulatory adequacy by itself.
+- Version metadata (the `pyproject.toml` bump, this changelog entry, and
+  the citation date) landed in a follow-up commit after the v0.3.1 tag;
+  the tagged tree archived under DOI 10.5281/zenodo.20667482
+  self-identifies as 0.3.0 in `pyproject.toml`.
+
 ## v0.3.0 - 2026-05-24
 
 ### Added
