@@ -29,7 +29,7 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 dependencies = [
-  "jsonschema[format]>=4.23,<5"
+  "jsonschema[format]>=4.26.0,<5"
 ]
 
 [project.urls]
