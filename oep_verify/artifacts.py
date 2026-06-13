@@ -197,6 +197,7 @@ SOURCE_DISTRIBUTION_FILES = tuple(
             ".github/ISSUE_TEMPLATE/bug_report.yml",
             ".github/ISSUE_TEMPLATE/config.yml",
             ".github/ISSUE_TEMPLATE/docs_question.yml",
+            ".github/workflows/release.yml",
             ".github/workflows/verify.yml",
             ".gitattributes",
             "CHANGELOG.md",

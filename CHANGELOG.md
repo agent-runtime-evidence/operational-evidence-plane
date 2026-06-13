@@ -2,6 +2,32 @@
 
 All notable changes to this reference implementation are documented here.
 
+## v0.3.2 - 2026-06-13
+
+### Added
+
+- Added `make check-lock`, a lockfile freshness gate wired into `make verify`
+  (soft warning without `uv` locally; CI enforces via `uv sync --locked`),
+  with `uv` carried as a locked dev dependency.
+- Added a release workflow publishing the distribution to PyPI via trusted
+  publishing on tag push; this release is the first PyPI publication.
+
+### Changed
+
+- Adopted `ruff format` across the codebase and enforce it in `make lint`
+  (and therefore in the pre-commit hooks).
+- Recomputed the release manifest workflow digest after the formatting pass
+  touched bound demo sources; `release_manifest_version` is updated in the
+  permission packet examples, the MCP and LangGraph adapter examples, and
+  the packaged mirrors.
+
+### Notes
+
+- public API unchanged
+- schema contract unchanged
+- Manifest digests changed because bound workflow-source bytes changed;
+  deterministic replay output remains byte-identical.
+
 ## v0.3.1 - 2026-06-12
 
 ### Added
