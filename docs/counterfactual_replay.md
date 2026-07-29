@@ -10,6 +10,24 @@ oep replay pder_code_review_read_diff_0001 \
   --replay-timestamp-utc 2026-05-23T00:00:00Z
 ```
 
+That command returns `decision_changed: false`: the read-diff decision records a
+checkpoint inside the stricter four-step bound, so both bundles allow it on an
+identical matched rule set and only the policy bundle hash differs. That is a
+result, not an empty run — for that decision the substituted policy is excluded
+as a cause, reproducibly rather than by argument. To see the same substitution
+change a verdict, read the committed ten-step example, where steps 1-4 exclude
+the policy surface and step 5 flips `allow` to `deny` with
+`decision_code: STEP_BOUND_EXCEEDED` and null budget, approval, and workflow
+deltas:
+
+```bash
+.venv/bin/python demo/scripts/run_compound_reliability_counterfactual.py \
+  --output-dir examples/incident_reconstruction/counterfactual
+```
+
+Both outputs are deterministic policy recomputation over recorded fields, so a
+rerun reproduces them byte for byte under the pinned replay timestamp.
+
 `OEP_REPLAY_MODE=counterfactual` enables the same mode from the environment. `--replay-timestamp-utc` pins the otherwise excluded wall-clock replay timestamp when comparing CLI JSON byte-for-byte; `--strip-exclusions` removes fields listed in `replay_metadata.determinism_exclusions` before printing JSON/JSONL output. `make validate-counterfactual-replay` regenerates the three counterfactual demos; `make check-replay-determinism` checks byte-identical SQLite state, counterfactual JSON/JSONL, and DTR JSONL across runs.
 
 The three demos all extend the existing deterministic code-review fixture:

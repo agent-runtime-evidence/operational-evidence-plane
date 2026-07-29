@@ -22,6 +22,8 @@
     "budget_runaway_replay": "examples/incident_reconstruction/counterfactual/budget_per_run_counterfactual.v0.json",
     "budget_runaway_replay_jsonl": "examples/incident_reconstruction/counterfactual/budget_per_run_counterfactual.v0.jsonl",
     "model_budget_replay": "examples/incident_reconstruction/model_budget_counterfactual.v0.json",
+    "policy_surface_replay": "examples/incident_reconstruction/counterfactual/compound_reliability_counterfactual.v0.json",
+    "policy_surface_replay_jsonl": "examples/incident_reconstruction/counterfactual/compound_reliability_counterfactual.v0.jsonl",
     "case_study": "examples/incident_reconstruction/case_study.md"
   },
   "counterfactual_answers": {
@@ -39,6 +41,11 @@
       "answer": "no",
       "evidence_ref": "examples/incident_reconstruction/model_budget_counterfactual.v0.json",
       "reason": "The replay output labels cross-provider model substitution as replay_class=evaluative and counterfactual_label=counterfactual estimate."
+    },
+    "did_the_policy_surface_change_this_decision": {
+      "answer": "for four of ten recorded steps no, for step five yes",
+      "evidence_ref": "examples/incident_reconstruction/counterfactual/compound_reliability_counterfactual.v0.json",
+      "reason": "One substituted policy bundle is re-evaluated against ten recorded decisions with every other recorded field pinned. Steps 1-4 record decision_changed=false, which excludes the policy surface for those decisions. Step 5 records decision_changed=true, decision_code=STEP_BOUND_EXCEEDED, rule_set_delta.added=[deny_compound_reliability_step_bound_exceeded], and null budget_delta, approval_delta, and workflow_delta, which attributes the change to the policy surface alone. Both outcomes come from deterministic policy recomputation over recorded fields, not from an evaluative estimate."
     }
   },
   "claim_boundary": [

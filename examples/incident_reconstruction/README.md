@@ -26,6 +26,8 @@ policy primitive.
 | Reconstruction packet | `playbooks/examples/code_review_denied_reconstruction_packet.v0.json` |
 | Cost-runaway replay output | `counterfactual/budget_per_run_counterfactual.v0.json` |
 | Cost-runaway JSONL steps | `counterfactual/budget_per_run_counterfactual.v0.jsonl` |
+| Policy-surface replay output (single-surface verdict flip) | `counterfactual/compound_reliability_counterfactual.v0.json` |
+| Policy-surface JSONL steps | `counterfactual/compound_reliability_counterfactual.v0.jsonl` |
 | Model+budget replay verdict | `model_budget_counterfactual.v0.json` |
 | Case-study narrative | `case_study.md` |
 | Machine-readable index | `evidence_index.v0.json` |
@@ -41,6 +43,7 @@ From the repository root:
 .venv/bin/python demo/scripts/run_code_review_demo.py
 .venv/bin/python playbooks/scripts/check_reconstruction_packet.py --scenario code_review_agent_denied
 .venv/bin/python demo/scripts/run_budget_per_run_counterfactual.py --output-dir examples/incident_reconstruction/counterfactual
+.venv/bin/python demo/scripts/run_compound_reliability_counterfactual.py --output-dir examples/incident_reconstruction/counterfactual
 .venv/bin/python -m oep_verify.cli replay pder_code_review_read_diff_0001 \
   --state-path demo/state/code_review_agent.sqlite \
   --substitute-budget per_run_cap_usd=0.005 \
@@ -54,4 +57,15 @@ OPA-backed permission packet denies the tool call and no SQLite replay state is
 created for that denied path. The cost branch validates as deterministic
 budget replay over recorded fields. The model-substitution branch is labelled
 `evaluative`.
+
+The compound-reliability branch is the single-surface policy case: the same ten
+recorded decisions are re-evaluated under one substituted policy bundle, with
+every other recorded field pinned. Steps 1-4 return `decision_changed: false`;
+step 5 flips `allow` to `deny` with `decision_code: STEP_BOUND_EXCEEDED`,
+`rule_set_delta.added: [deny_compound_reliability_step_bound_exceeded]`, and
+`budget_delta`, `approval_delta`, and `workflow_delta` all null. It is the
+example to read when the question is which single surface changed a decision,
+because both answers appear in one run: four steps exclude the policy surface
+and one attributes to it. The replay is deterministic policy recomputation over
+recorded fields, not an evaluative estimate.
 
