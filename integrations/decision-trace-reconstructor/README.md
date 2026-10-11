@@ -22,7 +22,7 @@ expected output.
 Prerequisites:
 
 - Python 3.11+ (matches OEP's own pyproject baseline)
-- Decision Trace Reconstructor v0.1.0+ installed in a virtual environment with the `[generic-jsonl]` extra (or no extra — the adapter is bundled by default).
+- Decision Trace Reconstructor 0.2.0 from the locally prepared release, or an explicitly pinned historical 0.1.x version. The generic-jsonl adapter is bundled by default. Version 0.2.0 is not yet published.
 
 ```bash
 # 1. Regenerate the JSONL stream from the OEP example artefacts.
@@ -55,6 +55,15 @@ The pinned scenario produces six fragments resolved into two decision units
 with completeness 85.7%. Per-property categories from
 [`code_review_agent.expected_feasibility.json`](code_review_agent.expected_feasibility.json):
 
+That file remains the unchanged historical 0.1.x expectation. The complete
+0.2.0 CLI expectation is stored separately in
+[`expected/v0.2.0/code_review_agent.feasibility.json`](expected/v0.2.0/code_review_agent.feasibility.json).
+The property categories and completeness below are unchanged, but 0.2.0 adds
+the `fragment-coverage-v2` contract and actor inventory. It returns null for
+`dominant_mode` and `dominant_break`: several record producers alone do not
+establish decision diffusion. This generic-jsonl projection remains untyped
+coverage evidence; it does not opt into `decision-evidence-v1`.
+
 | Decision Event Schema property | DTR category |
 |---|---|
 | `inputs` | `fully_fillable` |
@@ -77,7 +86,16 @@ extension of the OEP example (with an actual LLM call recorded as a
 `make check-dtr-jsonl` regenerates and diffs the JSONL projection for both
 `code_review_agent` and `code_review_agent_denied`. `make validate-dtr`
 performs the external DTR ingest/reconstruct/feasibility diff for the allowed
-`code_review_agent` scenario, where the pinned feasibility output is committed.
+`code_review_agent` scenario in a temporary directory. It checks the CLI version
+before comparing the full output with the corresponding saved expectation:
+
+```bash
+make validate-dtr DTR=/path/to/decision-trace DTR_VERSION=0.2.0
+make validate-dtr DTR=/path/to/old/decision-trace DTR_VERSION=0.1.0
+```
+
+Unknown versions and version/output mismatches fail rather than silently
+replacing the historical contract.
 The denied scenario remains projection-pinned until a corresponding DTR
 `expected_feasibility.json` is generated and committed.
 

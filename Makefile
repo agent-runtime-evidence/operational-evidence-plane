@@ -217,22 +217,9 @@ check-dtr-jsonl:
 		diff -u "$(DTR_INTEGRATION_DIR)/$$scenario.jsonl" "$$out"; \
 	done
 
-# Validate the DTR integration end-to-end. Requires `decision-trace` v0.1.0+
-# installed and on PATH (or override DTR=... explicitly).
+# Validate an explicitly versioned external DTR CLI in temporary output paths.
 DTR ?= decision-trace
-validate-dtr: regen-dtr-jsonl
-	$(DTR) validate generic-jsonl \
-		--mapping $(DTR_INTEGRATION_DIR)/mapping.v0.yaml \
-		--sample-from $(DTR_INTEGRATION_DIR)/$(DTR_SCENARIO).jsonl
-	$(DTR) ingest generic-jsonl \
-		--from-file $(DTR_INTEGRATION_DIR)/$(DTR_SCENARIO).jsonl \
-		--mapping $(DTR_INTEGRATION_DIR)/mapping.v0.yaml \
-		--scenario-id oep_$(DTR_SCENARIO) \
-		--out $(DTR_INTEGRATION_DIR)/$(DTR_SCENARIO).fragments.json
-	$(DTR) reconstruct $(DTR_INTEGRATION_DIR)/$(DTR_SCENARIO).fragments.json \
-		--out $(DTR_INTEGRATION_DIR)/$(DTR_SCENARIO).report \
-		--jsonld
-	@diff -q $(DTR_INTEGRATION_DIR)/$(DTR_SCENARIO).report/feasibility.json \
-		$(DTR_INTEGRATION_DIR)/$(DTR_SCENARIO).expected_feasibility.json \
-		&& echo "OK: $(DTR_SCENARIO) feasibility matches expected" \
-		|| (echo "FAIL: $(DTR_SCENARIO) feasibility differs from expected"; exit 1)
+DTR_VERSION ?= 0.2.0
+validate-dtr: check-dtr-jsonl
+	$(PY_RUN) $(DTR_INTEGRATION_DIR)/scripts/check_dtr_compatibility.py \
+		--dtr "$(DTR)" --version "$(DTR_VERSION)" --scenario "$(DTR_SCENARIO)"
