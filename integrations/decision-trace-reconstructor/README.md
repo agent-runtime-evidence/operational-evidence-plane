@@ -15,14 +15,16 @@ expected output.
 | [`mapping.v0.yaml`](mapping.v0.yaml) | Canonical DTR `generic-jsonl` mapping config. Translates OEP record kinds (`manifest`, `prompt`, `policy`, `tool`, `state`, `human`, `final`) to DTR fragment kinds (`config_snapshot`, `agent_message`, `policy_snapshot`, `tool_call`, `state_mutation`, `human_approval`). |
 | `code_review_agent.jsonl` | Generated JSONL stream for the `code_review_agent` scenario. Regenerable from `to_dtr_jsonl.py` + the upstream OEP example artefacts at any commit. |
 | `code_review_agent_denied.jsonl` | Generated JSONL stream for the `code_review_agent_denied` scenario. This path has no replay-state record because the tool call is denied before state is generated; it is currently pinned as a JSONL projection regression artifact only. |
-| `code_review_agent.expected_feasibility.json` | Pinned DTR `feasibility.json` output for regression-testing the DTR pipeline against the allowed `code_review_agent` scenario. |
+| `code_review_agent.expected_feasibility.json` | Preserved DTR 0.1.0–0.1.2 `feasibility.json` expectation for the allowed `code_review_agent` scenario. |
+| [`expected/v0.2.0/code_review_agent.feasibility.json`](expected/v0.2.0/code_review_agent.feasibility.json) | Complete DTR 0.2.0 expectation, including the evidence contract and actor inventory. |
+| [`scripts/check_dtr_compatibility.py`](scripts/check_dtr_compatibility.py) | Checks the external CLI version and full output in a temporary directory without overwriting either expectation. |
 
 ## Quickstart
 
 Prerequisites:
 
 - Python 3.11+ (matches OEP's own pyproject baseline)
-- Decision Trace Reconstructor 0.2.0 from the locally prepared release, or an explicitly pinned historical 0.1.x version. The generic-jsonl adapter is bundled by default. Version 0.2.0 is not yet published.
+- [Decision Trace Reconstructor 0.2.0](https://doi.org/10.5281/zenodo.23297502), published on 11 October 2026, or an explicitly pinned historical version 0.1.0, 0.1.1 or 0.1.2. The generic-jsonl adapter is bundled by default. This DOI identifies the DTR software release.
 
 ```bash
 # 1. Regenerate the JSONL stream from the OEP example artefacts.
@@ -52,11 +54,10 @@ decision-trace reconstruct \
 ## Expected output for `code_review_agent`
 
 The pinned scenario produces six fragments resolved into two decision units
-with completeness 85.7%. Per-property categories from
-[`code_review_agent.expected_feasibility.json`](code_review_agent.expected_feasibility.json):
-
-That file remains the unchanged historical 0.1.x expectation. The complete
-0.2.0 CLI expectation is stored separately in
+with completeness 85.7%. The historical expectation for DTR 0.1.0–0.1.2 remains
+unchanged in
+[`code_review_agent.expected_feasibility.json`](code_review_agent.expected_feasibility.json).
+The complete 0.2.0 CLI expectation is stored separately in
 [`expected/v0.2.0/code_review_agent.feasibility.json`](expected/v0.2.0/code_review_agent.feasibility.json).
 The property categories and completeness below are unchanged, but 0.2.0 adds
 the `fragment-coverage-v2` contract and actor inventory. It returns null for
